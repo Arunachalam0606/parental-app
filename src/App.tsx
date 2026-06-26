@@ -142,23 +142,22 @@ export const App = () => {
       return <LayoutChild />
     }
 
-    // If App Detail Report is open, slide it in
-    if (activeAppDetailId !== null) {
-      return <AppDetailReport />
-    }
-
     if (activeTab === 'dashboard') {
       return <LayoutPersonal />
     }
+
     if (activeTab === 'parental') {
       return <LayoutParental />
     }
+
     if (activeTab === 'shield') {
       return <LayoutAdblocker />
     }
+
     if (activeTab === 'profile') {
       return <LayoutProfile />
     }
+
     return <LayoutPersonal />
   }
 
@@ -235,12 +234,12 @@ export const App = () => {
         {/* Mockup screen */}
         <div className="flex-1 flex justify-center py-4">
           <MobileFrame>
-            <div className="h-full w-full flex flex-col justify-between">
+            <div className="h-full w-full flex flex-col justify-between relative overflow-hidden">
               {/* Active Layout area */}
               <div className="flex-1 overflow-y-auto pr-1 pt-1 pb-4 scrollbar-none">
                 <AnimatePresence mode="wait">
                   <motion.div
-                    key={activeProfileMode === 'child' ? 'child' : activeAppDetailId ? `detail_${activeAppDetailId}` : `tab_${activeTab}`}
+                    key={activeProfileMode === 'child' ? 'child' : `tab_${activeTab}`}
                     initial={{ opacity: 0, x: 15 }}
                     animate={{ opacity: 1, x: 0 }}
                     exit={{ opacity: 0, x: -15 }}
@@ -256,6 +255,21 @@ export const App = () => {
               {activeProfileMode !== 'child' && activeAppDetailId === null && (
                 <BottomNavBar />
               )}
+
+              {/* Sliding App Detail Report Overlay */}
+              <AnimatePresence>
+                {activeAppDetailId !== null && (
+                  <motion.div
+                    initial={{ y: '100%' }}
+                    animate={{ y: 0 }}
+                    exit={{ y: '100%' }}
+                    transition={{ type: 'spring', damping: 26, stiffness: 220 }}
+                    className="absolute inset-0 z-40 bg-background rounded-[38px] overflow-hidden"
+                  >
+                    <AppDetailReport />
+                  </motion.div>
+                )}
+              </AnimatePresence>
             </div>
           </MobileFrame>
         </div>
