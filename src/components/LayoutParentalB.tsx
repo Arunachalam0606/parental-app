@@ -16,9 +16,10 @@ import {
   HourglassIcon,
   LockIcon,
   LockOpenIcon,
+  WarningCircleIcon,
 } from "@phosphor-icons/react"
 
-export const LayoutParental = () => {
+export const LayoutParentalB = () => {
   const {
     childProfiles,
     selectedChildId,
@@ -43,6 +44,7 @@ export const LayoutParental = () => {
     getChildAppTimeSpent,
     addChildProfile,
     addToast,
+    demoEmpty,
   } = useWellbeingLogic()
 
   // Tabs for whitelist vs blacklist
@@ -88,9 +90,9 @@ export const LayoutParental = () => {
   const [scheduleLimitVal, setScheduleLimitVal] = useState<number>(90)
 
   // Filter pending requests for this child or overall
-  const pendingRequests = extraTimeRequests.filter(
-    (r) => r.status === "pending"
-  )
+  const pendingRequests = demoEmpty
+    ? []
+    : extraTimeRequests.filter((r) => r.status === "pending")
 
   const handleOpenAppLimitEditor = (appId: string, currentLimit?: number) => {
     setEditingAppId(appId)
@@ -122,12 +124,12 @@ export const LayoutParental = () => {
   }
 
   // Ring calculations
-  const limitToday = activeChildProfile.timeSpentToday
+  const limitToday = demoEmpty ? 0 : activeChildProfile.timeSpentToday
   const maxLimitToday = activeChildProfile.weekdayLimitMinutes
   const percentage = Math.min(limitToday / maxLimitToday, 1)
 
   return (
-    <section className="flex flex-col gap-6 select-none">
+    <section className="flex flex-col gap-4 select-none">
       <div>
         <span className="text-[10px] font-bold tracking-wider text-muted-foreground uppercase">
           Parent Portal
@@ -138,7 +140,7 @@ export const LayoutParental = () => {
         </h1>
       </div>
 
-      <div className="flex items-center rounded-2xl border border-border/10 bg-secondary/55 p-1 backdrop-blur-md">
+      <div className="flex items-center rounded-xl border border-border/40 bg-white/40 p-1 backdrop-blur-md dark:bg-slate-800/40">
         {childProfiles.map((child) => {
           const isSelected = child.id === selectedChildId
 
@@ -146,26 +148,24 @@ export const LayoutParental = () => {
             <button
               key={child.id}
               onClick={() => setSelectedChildId(child.id)}
-              className={`relative flex-1 cursor-pointer rounded-xl py-2.5 text-xs font-bold transition-colors ${
-                isSelected
-                  ? "text-primary-foreground"
-                  : "text-muted-foreground hover:text-foreground"
-              }`}
+              className={`relative flex-1 cursor-pointer rounded-lg py-2 text-xs font-bold transition-colors active:scale-95`}
             >
               {isSelected && (
                 <motion.div
-                  layoutId="activeChildTab"
-                  className="absolute inset-0 rounded-xl bg-primary shadow-sm"
+                  layoutId="activeChildTabB"
+                  className="absolute inset-0 rounded-lg bg-primary shadow-sm"
                   transition={{ type: "spring", stiffness: 380, damping: 30 }}
                 />
               )}
 
-              <span className="relative z-10 flex items-center justify-center gap-1.5">
+              <span
+                className={`relative z-10 flex items-center justify-center gap-1.5 ${isSelected ? "text-primary-foreground" : "text-muted-foreground"}`}
+              >
                 <span
                   className="h-2 w-2 animate-pulse rounded-full shadow-sm"
                   style={{ backgroundColor: child.avatarColor }}
                 />
-                {child.name} ({child.age}yo)
+                {child.name}
               </span>
             </button>
           )
@@ -173,20 +173,20 @@ export const LayoutParental = () => {
 
         <button
           onClick={handleOpenAddChild}
-          className="mr-1 ml-1.5 flex shrink-0 cursor-pointer items-center justify-center rounded-xl p-2.5 text-muted-foreground transition-all hover:bg-primary/10 hover:text-primary"
+          className="mr-1 ml-1 flex shrink-0 cursor-pointer items-center justify-center rounded-lg p-2 text-muted-foreground transition-all hover:bg-primary/10 hover:text-primary"
           title="Add new child profile"
         >
-          <PlusIcon size={16} weight="bold" />
+          <PlusIcon size={15} weight="bold" />
         </button>
       </div>
 
       <AnimatePresence mode="popLayout">
-        {pendingRequests.length > 0 && (
+        {!demoEmpty && pendingRequests.length > 0 && (
           <motion.div
             initial={{ opacity: 0, scale: 0.95, y: -10 }}
             animate={{ opacity: 1, scale: 1, y: 0 }}
             exit={{ opacity: 0, scale: 0.95, y: -10 }}
-            className="flex flex-col gap-4 rounded-3xl border border-amber-500/20 bg-amber-500/5 p-5 shadow-lg shadow-amber-500/5 backdrop-blur-xl dark:bg-amber-500/10"
+            className="flex flex-col gap-3 rounded-2xl border border-amber-500/20 bg-gradient-to-tr from-amber-500/10 to-orange-500/5 p-4.5 shadow-sm backdrop-blur-xl"
           >
             <div className="flex items-center justify-between">
               <h3 className="flex items-center gap-1.5 font-heading text-xs font-bold tracking-wider text-amber-700 uppercase dark:text-amber-400">
@@ -202,7 +202,7 @@ export const LayoutParental = () => {
               <span className="h-2 w-2 animate-ping rounded-full bg-amber-500" />
             </div>
 
-            <div className="flex flex-col gap-3">
+            <div className="flex flex-col gap-2.5">
               {pendingRequests.map((req) => {
                 const requester =
                   childProfiles.find((c) => c.id === req.childId)?.name ||
@@ -214,7 +214,7 @@ export const LayoutParental = () => {
                   <motion.div
                     key={req.id}
                     layout
-                    className="flex flex-col gap-3 rounded-2xl border border-border/80 bg-card p-4 shadow-sm"
+                    className="flex flex-col gap-3 rounded-xl border border-border/40 bg-white/60 p-3.5 shadow-sm dark:bg-slate-800/60"
                   >
                     <div className="flex items-start justify-between">
                       <div>
@@ -243,7 +243,7 @@ export const LayoutParental = () => {
                     <div className="flex items-center justify-end gap-2 border-t border-border/40 pt-3">
                       <button
                         onClick={() => handleExtraTimeRequest(req.id, "reject")}
-                        className="flex h-8.5 w-8.5 cursor-pointer items-center justify-center rounded-xl border border-border/80 bg-secondary text-muted-foreground transition-colors hover:bg-muted hover:text-rose-500"
+                        className="flex h-8 w-8 cursor-pointer items-center justify-center rounded-lg border border-border/80 bg-secondary text-muted-foreground transition-colors hover:bg-muted hover:text-rose-500 active:scale-95"
                       >
                         <XIcon size={14} weight="bold" />
                       </button>
@@ -252,7 +252,7 @@ export const LayoutParental = () => {
                         onClick={() =>
                           handleExtraTimeRequest(req.id, "approve")
                         }
-                        className="flex h-8.5 cursor-pointer items-center gap-1.5 rounded-xl border border-emerald-600/20 bg-emerald-500 px-4 text-xs font-bold text-white shadow-md transition-colors hover:bg-emerald-600"
+                        className="flex h-8 cursor-pointer items-center gap-1.5 rounded-lg border border-emerald-600/20 bg-emerald-500 px-3 text-xs font-bold text-white shadow-md transition-colors hover:bg-emerald-600 active:scale-95"
                       >
                         <CheckIcon size={12} weight="bold" />
 
@@ -267,14 +267,14 @@ export const LayoutParental = () => {
         )}
       </AnimatePresence>
 
-      <div className="flex items-center justify-between rounded-3xl border border-border/80 bg-card/50 p-5 shadow-lg shadow-black/5 backdrop-blur-xl">
+      <div className="flex items-center justify-between rounded-2xl border border-border/80 bg-gradient-to-tr from-white/60 to-purple-50/50 p-4.5 shadow-sm backdrop-blur-xl dark:from-slate-900/60 dark:to-purple-950/20">
         <div className="flex flex-col gap-1.5">
           <span className="text-[9px] font-bold tracking-wider text-muted-foreground uppercase">
             Screen Time Today
           </span>
 
           <h3 className="font-heading text-3xl font-black tracking-tight text-foreground/90">
-            {childScreenTimeFormatted}
+            {demoEmpty ? "0m" : childScreenTimeFormatted}
           </h3>
 
           <p className="text-[10px] font-semibold text-muted-foreground">
@@ -286,13 +286,14 @@ export const LayoutParental = () => {
           <svg className="h-full w-full -rotate-90">
             <defs>
               <linearGradient
-                id="childRingGrad"
+                id="childRingGradB"
                 x1="0%"
                 y1="0%"
                 x2="100%"
                 y2="100%"
               >
                 <stop offset="0%" stopColor={activeChildProfile.avatarColor} />
+
                 <stop offset="100%" stopColor="#EC4899" />
               </linearGradient>
             </defs>
@@ -312,7 +313,7 @@ export const LayoutParental = () => {
               cy="40"
               r="32"
               fill="none"
-              stroke="url(#childRingGrad)"
+              stroke="url(#childRingGradB)"
               strokeWidth="5.5"
               strokeLinecap="round"
               strokeDasharray={2 * Math.PI * 32}
@@ -335,7 +336,7 @@ export const LayoutParental = () => {
         </div>
       </div>
 
-      <div className="rounded-3xl border border-border/80 bg-card/50 p-5 shadow-lg shadow-black/5 backdrop-blur-xl">
+      <div className="rounded-2xl border border-border/80 bg-gradient-to-tr from-white/60 to-purple-50/50 p-4.5 shadow-sm backdrop-blur-xl dark:from-slate-900/60 dark:to-purple-950/20">
         <h3 className="mb-4 flex items-center gap-1.5 font-heading text-xs font-bold tracking-wider text-muted-foreground uppercase">
           <CalendarBlankIcon
             size={18}
@@ -346,8 +347,8 @@ export const LayoutParental = () => {
           <span>Bedtime Routines allowance</span>
         </h3>
 
-        <div className="flex flex-col gap-3">
-          <div className="flex items-center justify-between rounded-2xl border border-border/40 bg-secondary/35 p-3.5 transition-colors hover:bg-secondary/50">
+        <div className="flex flex-col gap-2.5">
+          <div className="flex items-center justify-between rounded-xl border border-border/30 bg-white/40 p-3 dark:bg-slate-800/40">
             <div>
               <span className="text-xs font-semibold text-foreground/90">
                 Weekday Limit
@@ -365,7 +366,7 @@ export const LayoutParental = () => {
                   activeChildProfile.weekdayLimitMinutes
                 )
               }
-              className="flex h-9 cursor-pointer items-center gap-1 rounded-xl border border-border/80 bg-secondary px-3 text-xs font-bold text-foreground/80 transition-colors hover:bg-muted"
+              className="flex h-9 cursor-pointer items-center gap-1 rounded-xl border border-border bg-secondary/80 px-3 text-xs font-bold text-foreground/80 transition-colors active:scale-95"
             >
               <span>{activeChildProfile.weekdayLimitMinutes}m</span>
 
@@ -373,7 +374,7 @@ export const LayoutParental = () => {
             </button>
           </div>
 
-          <div className="flex items-center justify-between rounded-2xl border border-border/40 bg-secondary/35 p-3.5 transition-colors hover:bg-secondary/50">
+          <div className="flex items-center justify-between rounded-xl border border-border/30 bg-white/40 p-3 dark:bg-slate-800/40">
             <div>
               <span className="text-xs font-semibold text-foreground/90">
                 Weekend Limit
@@ -391,7 +392,7 @@ export const LayoutParental = () => {
                   activeChildProfile.weekendLimitMinutes
                 )
               }
-              className="flex h-9 cursor-pointer items-center gap-1 rounded-xl border border-border/80 bg-secondary px-3 text-xs font-bold text-foreground/80 transition-colors hover:bg-muted"
+              className="flex h-9 cursor-pointer items-center gap-1 rounded-xl border border-border bg-secondary/80 px-3 text-xs font-bold text-foreground/80 transition-colors active:scale-95"
             >
               <span>{activeChildProfile.weekendLimitMinutes}m</span>
 
@@ -406,9 +407,9 @@ export const LayoutParental = () => {
               initial={{ opacity: 0, height: 0 }}
               animate={{ opacity: 1, height: "auto" }}
               exit={{ opacity: 0, height: 0 }}
-              className="mt-4 overflow-hidden"
+              className="mt-3 overflow-hidden"
             >
-              <div className="flex flex-col gap-3.5 rounded-2xl border border-primary/20 bg-primary/5 p-4">
+              <div className="flex flex-col gap-3.5 rounded-xl border border-primary/20 bg-primary/5 p-4">
                 <div className="flex items-center justify-between text-xs font-semibold">
                   <span className="capitalize">
                     {editingScheduleType} limit duration:
@@ -452,28 +453,33 @@ export const LayoutParental = () => {
         </AnimatePresence>
       </div>
 
-      <div className="rounded-3xl border border-border/80 bg-card/50 p-5 shadow-lg shadow-black/5 backdrop-blur-xl">
+      <div className="rounded-2xl border border-border/80 bg-gradient-to-tr from-white/60 to-purple-50/50 p-4.5 shadow-sm backdrop-blur-xl dark:from-slate-900/60 dark:to-purple-950/20">
         <h3 className="mb-4 font-heading text-xs font-bold tracking-wider text-muted-foreground uppercase">
           App-Specific Rules
         </h3>
 
-        <div className="flex flex-col gap-3">
+        <div className="flex flex-col gap-2.5">
           {appStats
-            .filter((a) =>
-              ["minecraft", "yt", "tiktok", "insta"].includes(a.id)
-            )
+            .filter((a) => {
+              if (selectedChildId === "alex") {
+                return ["minecraft", "yt", "insta"].includes(a.id)
+              }
+              return ["tiktok", "yt", "insta"].includes(a.id)
+            })
             .map((app) => {
               const childLimits = childAppLimits[selectedChildId] || {}
               const currentLimit = childLimits[app.id]
               const lockedApps = childManualLocks[selectedChildId] || []
               const isManualLocked = lockedApps.includes(app.id)
-              const timeSpent = getChildAppTimeSpent(selectedChildId, app.id)
+              const timeSpent = demoEmpty
+                ? 0
+                : getChildAppTimeSpent(selectedChildId, app.id)
               const isExpanded = editingAppId === app.id
 
               return (
                 <div
                   key={app.id}
-                  className="flex flex-col gap-3 rounded-2xl border border-border/40 bg-secondary/35 p-3.5"
+                  className="flex flex-col gap-3 rounded-xl border border-border/30 bg-white/40 p-3 dark:bg-slate-800/40"
                 >
                   <div className="flex items-center justify-between">
                     <div>
@@ -489,21 +495,21 @@ export const LayoutParental = () => {
                       </p>
                     </div>
 
-                    <div className="flex items-center gap-3">
+                    <div className="flex items-center gap-2">
                       <button
                         onClick={() =>
                           toggleChildManualLock(selectedChildId, app.id)
                         }
-                        className={`cursor-pointer rounded-xl border p-2 transition-all ${
+                        className={`cursor-pointer rounded-lg border p-2 transition-all active:scale-90 ${
                           isManualLocked
                             ? "border-rose-100 bg-rose-50 text-rose-600 dark:border-rose-900/30 dark:bg-rose-950/20 dark:text-rose-400"
                             : "border-border/80 bg-secondary text-muted-foreground hover:text-foreground"
                         }`}
                       >
                         {isManualLocked ? (
-                          <LockIcon size={15} weight="fill" />
+                          <LockIcon size={14} weight="fill" />
                         ) : (
-                          <LockOpenIcon size={15} weight="regular" />
+                          <LockOpenIcon size={14} weight="regular" />
                         )}
                       </button>
 
@@ -511,7 +517,7 @@ export const LayoutParental = () => {
                         onClick={() =>
                           handleOpenAppLimitEditor(app.id, currentLimit)
                         }
-                        className="h-8.5 cursor-pointer rounded-xl border border-border/80 bg-secondary px-3 text-[11px] font-bold text-foreground/80 transition-colors hover:bg-muted"
+                        className="h-8.5 cursor-pointer rounded-lg border border-border/80 bg-secondary px-3 text-[11px] font-bold text-foreground/80 transition-colors hover:bg-muted active:scale-95"
                       >
                         {currentLimit !== undefined
                           ? `${currentLimit}m`
@@ -528,9 +534,11 @@ export const LayoutParental = () => {
                         exit={{ height: 0, opacity: 0 }}
                         className="overflow-hidden"
                       >
-                        <div className="mt-1 flex flex-col gap-3 rounded-xl border border-border/60 bg-secondary/80 p-3.5">
+                        <div className="mt-1 flex flex-col gap-3 rounded-lg border border-border/60 bg-secondary/80 p-3">
                           <div className="flex items-center justify-between text-[11px] font-semibold">
-                            <span>Alex daily {app.name} limit:</span>
+                            <span>
+                              {activeChildProfile.name} daily {app.name} limit:
+                            </span>
 
                             <span className="font-black text-primary">
                               {editingLimitVal} Mins
@@ -553,7 +561,7 @@ export const LayoutParental = () => {
                             {currentLimit !== undefined && (
                               <button
                                 onClick={() => handleRemoveAppLimit(app.id)}
-                                className="h-8 cursor-pointer rounded-xl border border-rose-100 bg-rose-50 px-3 text-[11px] font-bold text-rose-600 transition-colors"
+                                className="h-8 cursor-pointer rounded-lg border border-rose-100 bg-rose-50 px-3 text-[11px] font-bold text-rose-600 transition-colors"
                               >
                                 Disable
                               </button>
@@ -561,7 +569,7 @@ export const LayoutParental = () => {
 
                             <button
                               onClick={() => handleSaveAppLimit(app.id)}
-                              className="h-8 cursor-pointer rounded-xl bg-primary px-3 text-[11px] font-bold text-primary-foreground shadow-sm transition-colors hover:opacity-90"
+                              className="h-8 cursor-pointer rounded-lg bg-primary px-3 text-[11px] font-bold text-primary-foreground shadow-sm transition-colors hover:opacity-90"
                             >
                               Save
                             </button>
@@ -576,19 +584,19 @@ export const LayoutParental = () => {
         </div>
       </div>
 
-      <div className="rounded-3xl border border-border/80 bg-card/50 p-5 shadow-lg shadow-black/5 backdrop-blur-xl">
+      <div className="rounded-2xl border border-border/80 bg-gradient-to-tr from-white/60 to-purple-50/50 p-4.5 shadow-sm backdrop-blur-xl dark:from-slate-900/60 dark:to-purple-950/20">
         <h3 className="mb-3.5 flex items-center gap-1.5 font-heading text-xs font-bold tracking-wider text-muted-foreground uppercase">
           <GlobeIcon size={18} weight="duotone" className="text-purple-500" />
 
           <span>Web Filter Policies</span>
         </h3>
 
-        <div className="mb-4 grid grid-cols-2 gap-2 rounded-xl border border-border/10 bg-secondary/50 p-1">
+        <div className="mb-4 grid grid-cols-2 gap-2 rounded-xl border border-border/30 bg-white/40 p-1 dark:bg-slate-800/40">
           <button
             onClick={() => setActiveListTab("blacklist")}
             className={`cursor-pointer rounded-lg py-2 text-xs font-bold transition-all ${
               activeListTab === "blacklist"
-                ? "bg-background text-foreground shadow-sm"
+                ? "bg-background font-extrabold text-foreground shadow-sm"
                 : "text-muted-foreground"
             }`}
           >
@@ -599,7 +607,7 @@ export const LayoutParental = () => {
             onClick={() => setActiveListTab("whitelist")}
             className={`cursor-pointer rounded-lg py-2 text-xs font-bold transition-all ${
               activeListTab === "whitelist"
-                ? "bg-background text-foreground shadow-sm"
+                ? "bg-background font-extrabold text-foreground shadow-sm"
                 : "text-muted-foreground"
             }`}
           >
@@ -607,28 +615,38 @@ export const LayoutParental = () => {
           </button>
         </div>
 
-        <div className="mb-4 flex flex-col gap-1.5">
+        <div className="mb-3.5 flex flex-col gap-1.5">
           <div className="flex items-center gap-2">
             <input
               type="text"
               placeholder="e.g. roblox.com"
               value={childDomainInput}
               onChange={(e) => setChildDomainInput(e.target.value)}
-              className="h-11 flex-1 rounded-xl border border-border bg-secondary/40 px-4 text-sm text-foreground focus:border-primary/50 focus:outline-none"
+              className="dark:bg-slate-850/40 h-11 flex-1 rounded-xl border border-border bg-white/40 px-4 text-sm text-foreground focus:border-primary/50 focus:outline-none"
             />
 
-            <button
-              onClick={
-                activeListTab === "whitelist"
-                  ? handleAddChildWhitelist
-                  : handleAddChildBlacklist
-              }
-              className="flex h-11 cursor-pointer items-center justify-center gap-1 rounded-xl bg-primary px-4 text-sm font-bold text-primary-foreground shadow-sm transition-colors hover:opacity-90"
-            >
-              <PlusIcon size={16} weight="bold" />
+            {/* Added distinct direct actions for "Block" and "Whitelist" */}
+            <div className="flex shrink-0 gap-1.5">
+              {activeListTab === "blacklist" ? (
+                <button
+                  onClick={handleAddChildBlacklist}
+                  className="flex h-11 cursor-pointer items-center justify-center gap-1 rounded-xl border border-rose-600/20 bg-rose-500 px-3 text-xs font-bold text-white shadow-sm transition-colors hover:bg-rose-600 active:scale-95"
+                >
+                  <WarningCircleIcon size={14} weight="bold" />
 
-              <span>Add</span>
-            </button>
+                  <span>Block Site</span>
+                </button>
+              ) : (
+                <button
+                  onClick={handleAddChildWhitelist}
+                  className="flex h-11 cursor-pointer items-center justify-center gap-1 rounded-xl border border-emerald-600/20 bg-emerald-500 px-3 text-xs font-bold text-white shadow-sm transition-colors hover:bg-emerald-600 active:scale-95"
+                >
+                  <CheckIcon size={14} weight="bold" />
+
+                  <span>Allow Site</span>
+                </button>
+              )}
+            </div>
           </div>
 
           {childDomainError && (
@@ -640,7 +658,11 @@ export const LayoutParental = () => {
 
         <div className="flex max-h-36 flex-col gap-2 overflow-y-auto pr-1">
           <AnimatePresence initial={false}>
-            {activeListTab === "blacklist" ? (
+            {demoEmpty ? (
+              <div className="py-5 text-center text-xs text-muted-foreground">
+                List empty (demo state)
+              </div>
+            ) : activeListTab === "blacklist" ? (
               activeChildProfile.blacklist.length === 0 ? (
                 <div className="py-5 text-center text-xs text-muted-foreground">
                   All domains allowed
@@ -660,7 +682,7 @@ export const LayoutParental = () => {
                       onClick={() =>
                         removeChildBlacklist(selectedChildId, domain)
                       }
-                      className="cursor-pointer rounded-lg p-1 text-rose-600 hover:bg-rose-500/10 dark:text-rose-400"
+                      className="text-rose-650 dark:text-rose-450 cursor-pointer rounded-lg p-1 hover:bg-rose-500/10 active:scale-90"
                     >
                       <TrashIcon size={14} />
                     </button>
@@ -686,7 +708,7 @@ export const LayoutParental = () => {
                     onClick={() =>
                       removeChildWhitelist(selectedChildId, domain)
                     }
-                    className="cursor-pointer rounded-lg p-1 text-emerald-600 hover:bg-emerald-500/10 dark:text-emerald-400"
+                    className="text-emerald-650 dark:text-emerald-450 cursor-pointer rounded-lg p-1 hover:bg-emerald-500/10 active:scale-90"
                   >
                     <TrashIcon size={14} />
                   </button>
@@ -697,49 +719,55 @@ export const LayoutParental = () => {
         </div>
       </div>
 
-      <div className="rounded-3xl border border-border/80 bg-card/50 p-5 shadow-lg shadow-black/5 backdrop-blur-xl">
+      <div className="mb-4 rounded-2xl border border-border/80 bg-gradient-to-tr from-white/60 to-purple-50/50 p-4.5 shadow-sm backdrop-blur-xl dark:from-slate-900/60 dark:to-purple-950/20">
         <h3 className="mb-3.5 flex items-center gap-1.5 font-heading text-xs font-bold tracking-wider text-muted-foreground uppercase">
           <CameraIcon size={18} weight="duotone" className="text-blue-500" />
 
           <span>Screen Monitoring Logs</span>
         </h3>
 
-        <div className="flex flex-col gap-3">
-          {[
-            {
-              id: "s1",
-              time: "17:15",
-              app: "Notion",
-              desc: "Working on school notes",
-            },
-            {
-              id: "s2",
-              time: "16:45",
-              app: "Duolingo",
-              desc: "Spanish lesson streak active",
-            },
-          ].map((snap) => (
-            <div
-              key={snap.id}
-              className="flex items-center gap-3 rounded-2xl border border-border/40 bg-secondary/35 p-3 transition-colors hover:bg-secondary/45"
-            >
-              <div className="flex h-12 w-12 items-center justify-center rounded-xl border border-blue-200/20 bg-gradient-to-tr from-blue-100 to-indigo-100 text-blue-600 dark:from-blue-950/40 dark:to-indigo-950/40 dark:text-blue-400">
-                <CameraIcon size={24} weight="regular" />
-              </div>
-
-              <div className="min-w-0 flex-1">
-                <div className="mb-0.5 flex items-center justify-between text-xs font-semibold">
-                  <span className="text-foreground">{snap.app}</span>
-
-                  <span className="text-muted-foreground">{snap.time}</span>
+        <div className="flex flex-col gap-2.5">
+          {demoEmpty ? (
+            <div className="py-5 text-center text-xs text-muted-foreground">
+              No screen snapshots logged today
+            </div>
+          ) : (
+            [
+              {
+                id: "s1",
+                time: "17:15",
+                app: "Notion",
+                desc: "Working on school notes",
+              },
+              {
+                id: "s2",
+                time: "16:45",
+                app: "Duolingo",
+                desc: "Spanish lesson streak active",
+              },
+            ].map((snap) => (
+              <div
+                key={snap.id}
+                className="flex items-center gap-3 rounded-xl border border-border/30 bg-white/40 p-3 transition-colors hover:bg-secondary/45 dark:bg-slate-800/40"
+              >
+                <div className="flex h-11 w-11 items-center justify-center rounded-xl border border-blue-200/20 bg-gradient-to-tr from-blue-100 to-indigo-100 text-blue-600 dark:from-blue-950/40 dark:to-indigo-950/40 dark:text-blue-400">
+                  <CameraIcon size={22} weight="regular" />
                 </div>
 
-                <p className="truncate text-[10px] font-medium text-muted-foreground">
-                  {snap.desc}
-                </p>
+                <div className="min-w-0 flex-1">
+                  <div className="mb-0.5 flex items-center justify-between text-xs font-semibold">
+                    <span className="text-foreground">{snap.app}</span>
+
+                    <span className="text-muted-foreground">{snap.time}</span>
+                  </div>
+
+                  <p className="truncate text-[10px] font-medium text-muted-foreground">
+                    {snap.desc}
+                  </p>
+                </div>
               </div>
-            </div>
-          ))}
+            ))
+          )}
         </div>
       </div>
 
@@ -756,7 +784,7 @@ export const LayoutParental = () => {
               initial={{ scale: 0.95, y: 15 }}
               animate={{ scale: 1, y: 0 }}
               exit={{ scale: 0.95, y: 15 }}
-              className="flex w-full max-w-sm flex-col gap-4 rounded-3xl border border-border bg-card p-6 text-foreground shadow-xl select-none"
+              className="flex w-full max-w-sm flex-col gap-4 rounded-2xl border border-border bg-card p-6 text-foreground shadow-xl select-none"
             >
               <h3 className="font-heading text-base font-bold tracking-tight text-foreground/90">
                 Add child profile
@@ -766,6 +794,7 @@ export const LayoutParental = () => {
                 <span className="pl-1 text-[10px] font-bold tracking-wider text-muted-foreground uppercase">
                   Child's Name
                 </span>
+
                 <input
                   type="text"
                   placeholder="e.g. Liam"
@@ -780,6 +809,7 @@ export const LayoutParental = () => {
                 <span className="pl-1 text-[10px] font-bold tracking-wider text-muted-foreground uppercase">
                   Age
                 </span>
+
                 <div className="flex items-center gap-2">
                   {[6, 8, 10, 12, 14, 16].map((ageVal) => (
                     <button
@@ -801,6 +831,7 @@ export const LayoutParental = () => {
                 <span className="pl-1 text-[10px] font-bold tracking-wider text-muted-foreground uppercase">
                   Avatar Color
                 </span>
+
                 <div className="flex justify-center gap-3 py-1">
                   {["#818CF8", "#F472B6", "#34D399", "#FB923C", "#C084FC"].map(
                     (color) => (
@@ -822,13 +853,14 @@ export const LayoutParental = () => {
               <div className="mt-2 grid grid-cols-2 gap-3 border-t border-border/40 pt-4">
                 <button
                   onClick={handleCloseAddChild}
-                  className="h-10 cursor-pointer rounded-xl border border-border bg-secondary text-xs font-bold text-foreground/80 hover:bg-muted"
+                  className="h-10 cursor-pointer rounded-xl border border-border bg-secondary text-xs font-bold text-foreground/80 transition-all hover:bg-muted active:scale-95"
                 >
                   Cancel
                 </button>
+
                 <button
                   onClick={handleCreateChild}
-                  className="h-10 cursor-pointer rounded-xl bg-primary text-xs font-black text-primary-foreground shadow-md hover:opacity-95"
+                  className="h-10 cursor-pointer rounded-xl bg-primary text-xs font-black text-primary-foreground shadow-md transition-all active:scale-95"
                 >
                   Create Profile
                 </button>
@@ -841,4 +873,4 @@ export const LayoutParental = () => {
   )
 }
 
-export default LayoutParental
+export default LayoutParentalB

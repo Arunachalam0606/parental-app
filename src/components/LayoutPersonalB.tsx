@@ -13,9 +13,10 @@ import {
   ArrowLeftIcon,
   ChartBarIcon,
   DotsThreeVerticalIcon,
+  DeviceMobileIcon,
 } from "@phosphor-icons/react"
 
-export const LayoutPersonal = () => {
+export const LayoutPersonalB = () => {
   const {
     appStats,
     weeklyUsage,
@@ -37,6 +38,7 @@ export const LayoutPersonal = () => {
     setActiveTab,
     updateAppLimit,
     setActiveAppDetailId,
+    demoEmpty,
   } = useWellbeingLogic()
 
   // Local state for wheel pickers and toggle states
@@ -46,7 +48,7 @@ export const LayoutPersonal = () => {
   const [showGoalModal, setShowGoalModal] = useState<boolean>(false)
   const [tempGoalMins, setTempGoalMins] = useState<number>(360)
 
-  // Navigate handlers (Logic Isolation: no inline arrow functions in return)
+  // Navigate handlers
   const handleGoToDashboard = useCallback(
     () => setWellbeingSubPage("dashboard"),
     [setWellbeingSubPage]
@@ -133,21 +135,30 @@ export const LayoutPersonal = () => {
   const donutRadius = 30
   const circumference = 2 * Math.PI * donutRadius
 
+  // Dynamic overrides for demoEmpty state
+  const effectiveTotalScreenTimeMinutes = demoEmpty ? 0 : totalScreenTimeMinutes
+  const effectiveFormattedTotalScreenTime = demoEmpty
+    ? "0m"
+    : formattedTotalScreenTime
+  const effectiveTotalPickups = demoEmpty ? 0 : totalPickups
+  const effectiveTotalNotifications = demoEmpty ? 0 : totalNotifications
+
   // Compute donut segment values
   const donutSegments = useMemo(() => {
+    if (demoEmpty) return []
     const sortedApps = [...appStats]
       .sort((a, b) => b.timeSpent - a.timeSpent)
       .slice(0, 3)
 
     return sortedApps.map((app, index) => {
-      const share = app.timeSpent / (totalScreenTimeMinutes || 1)
+      const share = app.timeSpent / (effectiveTotalScreenTimeMinutes || 1)
       const strokeDasharray = `${circumference * share} ${circumference}`
 
       const previousShareSum = sortedApps
         .slice(0, index)
         .reduce(
           (sum, prevApp) =>
-            sum + prevApp.timeSpent / (totalScreenTimeMinutes || 1),
+            sum + prevApp.timeSpent / (effectiveTotalScreenTimeMinutes || 1),
           0
         )
 
@@ -168,30 +179,32 @@ export const LayoutPersonal = () => {
         colorClass: colors[index % colors.length],
       }
     })
-  }, [appStats, totalScreenTimeMinutes, circumference])
+  }, [appStats, effectiveTotalScreenTimeMinutes, circumference, demoEmpty])
 
-  // Monthly Calendar Date Rings for June (May 30 to June 26)
+  // Monthly Calendar Date Rings for June
   const calendarDays = useMemo(() => {
     const daysArr = []
     daysArr.push({
       date: "30",
       month: "May",
-      used: 190,
+      used: demoEmpty ? 0 : 190,
       goal: 240,
-      status: "used",
+      status: demoEmpty ? "remaining" : "used",
     })
     daysArr.push({
       date: "31",
       month: "May",
-      used: 260,
+      used: demoEmpty ? 0 : 260,
       goal: 240,
-      status: "over",
+      status: demoEmpty ? "remaining" : "over",
     })
 
-    const mockUsages = [
-      120, 180, 210, 150, 250, 310, 140, 190, 220, 290, 180, 230, 295, 170, 210,
-      110, 160, 240, 215, 230, 190, 250, 180, 220, 250, 150, 0, 0,
-    ]
+    const mockUsages = demoEmpty
+      ? Array.from({ length: 27 }, () => 0)
+      : [
+          120, 180, 210, 150, 250, 310, 140, 190, 220, 290, 180, 230, 295, 170,
+          210, 110, 160, 240, 215, 230, 190, 250, 180, 220, 250, 150, 0, 0,
+        ]
 
     for (let i = 1; i <= 27; i++) {
       const dateStr = i.toString().padStart(2, "0")
@@ -204,22 +217,32 @@ export const LayoutPersonal = () => {
       daysArr.push({ date: dateStr, month: "June", used, goal, status })
     }
     return daysArr
-  }, [])
+  }, [demoEmpty])
 
   // Semicircular progress calculations
   const semiRadius = 50
   const semiCircumference = Math.PI * semiRadius
-  const todayRemaining = Math.max(360 - totalScreenTimeMinutes, 0)
-  const todayProgress = Math.min(totalScreenTimeMinutes / 360, 1)
+  const todayRemaining = Math.max(
+    screenTimeGoal - effectiveTotalScreenTimeMinutes,
+    0
+  )
+  const todayProgress = Math.min(
+    effectiveTotalScreenTimeMinutes / screenTimeGoal,
+    1
+  )
 
   // Selected date details for Goal History screen
   const activeGoalDetail = useMemo(() => {
+    if (demoEmpty) {
+      return { date: "26", used: 0, goal: screenTimeGoal, status: "remaining" }
+    }
     if (!goalDetailDate) {
       return {
         date: "26",
-        used: totalScreenTimeMinutes,
+        used: effectiveTotalScreenTimeMinutes,
         goal: screenTimeGoal,
-        status: totalScreenTimeMinutes > screenTimeGoal ? "over" : "used",
+        status:
+          effectiveTotalScreenTimeMinutes > screenTimeGoal ? "over" : "used",
       }
     }
     const match = calendarDays.find(
@@ -228,11 +251,18 @@ export const LayoutPersonal = () => {
     if (match) return match
     return {
       date: "26",
-      used: totalScreenTimeMinutes,
+      used: effectiveTotalScreenTimeMinutes,
       goal: screenTimeGoal,
-      status: totalScreenTimeMinutes > screenTimeGoal ? "over" : "used",
+      status:
+        effectiveTotalScreenTimeMinutes > screenTimeGoal ? "over" : "used",
     }
-  }, [goalDetailDate, calendarDays, totalScreenTimeMinutes, screenTimeGoal])
+  }, [
+    goalDetailDate,
+    calendarDays,
+    effectiveTotalScreenTimeMinutes,
+    screenTimeGoal,
+    demoEmpty,
+  ])
 
   // Heatmap hourly grid array (7 days x 24 hours scaled)
   const heatmapData = useMemo(() => {
@@ -240,6 +270,7 @@ export const LayoutPersonal = () => {
 
     return days.map((day, d) => {
       const hourlyVals = Array.from({ length: 24 }, (_, h) => {
+        if (demoEmpty) return 0
         let density = 0
         if (h >= 12 && h <= 14) {
           density = ((d * h) % 3) + 1
@@ -253,10 +284,13 @@ export const LayoutPersonal = () => {
 
       return { day, values: hourlyVals }
     })
-  }, [])
+  }, [demoEmpty])
 
   // Weekly Report stacked bar details
-  const maxWeeklyMins = Math.max(...weeklyUsage.map((d) => d.minutes), 360)
+  const maxWeeklyMins = useMemo(() => {
+    if (demoEmpty) return 360
+    return Math.max(...weeklyUsage.map((d) => d.minutes), 360)
+  }, [weeklyUsage, demoEmpty])
 
   // Day click logic
   const handleSelectDay = useCallback(
@@ -280,8 +314,7 @@ export const LayoutPersonal = () => {
     // 1. WELLBEING HOME PAGE VIEW
     if (wellbeingSubPage === "home") {
       return (
-        <div className="flex flex-col gap-5">
-          {/* Header */}
+        <div className="flex flex-col gap-4">
           <div className="flex items-center justify-between px-1">
             <div>
               <span className="text-[10px] font-bold tracking-wider text-muted-foreground uppercase">
@@ -296,39 +329,21 @@ export const LayoutPersonal = () => {
             <div className="flex gap-2">
               <button
                 onClick={handleGoToReport}
-                className="flex h-10 w-10 cursor-pointer items-center justify-center rounded-full border border-border/40 bg-secondary/80 text-foreground transition-colors hover:bg-secondary"
+                className="flex h-10 w-10 cursor-pointer items-center justify-center rounded-full border border-border/40 bg-white/40 text-foreground transition-all duration-200 active:scale-[0.95] dark:bg-slate-800/40"
                 title="Weekly report"
               >
                 <ChartBarIcon size={20} weight="regular" />
               </button>
 
-              <button className="flex h-10 w-10 cursor-pointer items-center justify-center rounded-full border border-border/40 bg-secondary/80 text-foreground transition-colors hover:bg-secondary">
+              <button className="flex h-10 w-10 cursor-pointer items-center justify-center rounded-full border border-border/40 bg-white/40 text-foreground transition-all duration-200 active:scale-[0.95] dark:bg-slate-800/40">
                 <DotsThreeVerticalIcon size={20} weight="bold" />
               </button>
             </div>
           </div>
 
-          {/* Habit Banner Card */}
-          <div className="relative flex min-h-[120px] flex-col justify-between overflow-hidden rounded-3xl border border-white/5 bg-slate-950 p-6 shadow-md dark:bg-slate-900/60">
-            <div className="absolute top-0 right-0 h-32 w-32 rounded-full bg-blue-500/20 blur-[50px]" />
-
-            <div className="absolute bottom-0 left-0 h-24 w-24 rounded-full bg-purple-500/10 blur-[40px]" />
-
-            <div className="relative z-10 flex max-w-[80%] flex-col gap-1.5">
-              <h2 className="font-heading text-lg font-bold tracking-tight text-sky-400 dark:text-sky-300">
-                Build healthy digital habits
-              </h2>
-
-              <p className="text-[11px] leading-relaxed font-medium text-slate-300/80">
-                You'll get feedback and help to keep you on track.
-              </p>
-            </div>
-          </div>
-
-          {/* Screen time today Card */}
           <div
             onClick={handleGoToDashboard}
-            className="flex cursor-pointer flex-col gap-4 rounded-3xl border border-border bg-card/60 p-5 shadow-[0_8px_32px_-4px_rgba(0,0,0,0.02)] backdrop-blur-xl transition-all duration-200 hover:bg-card/85"
+            className="flex cursor-pointer flex-col gap-4 rounded-2xl border border-border bg-gradient-to-tr from-white/60 to-purple-50/60 p-4.5 shadow-sm backdrop-blur-xl transition-all duration-200 active:scale-[0.98] dark:from-slate-900/60 dark:to-purple-950/20"
           >
             <div>
               <span className="text-[9.5px] font-bold tracking-wider text-muted-foreground uppercase">
@@ -337,7 +352,7 @@ export const LayoutPersonal = () => {
 
               <div className="mt-1 flex items-baseline justify-between">
                 <h3 className="font-heading text-3xl font-black text-foreground/90">
-                  {formattedTotalScreenTime}
+                  {effectiveFormattedTotalScreenTime}
                 </h3>
 
                 <CaretRightIcon
@@ -347,141 +362,169 @@ export const LayoutPersonal = () => {
               </div>
             </div>
 
-            <div className="flex items-center justify-between gap-2.5">
-              {/* App list on left */}
-              <div className="flex flex-col gap-2">
-                {donutSegments.map((seg, idx) => (
-                  <div key={seg.id} className="flex items-center gap-2">
-                    <span
-                      className={`h-2.5 w-2.5 rounded-full ${
-                        idx === 0
-                          ? "bg-[oklch(0.65_0.15_250)]"
-                          : idx === 1
-                            ? "bg-[oklch(0.68_0.14_170)]"
-                            : "bg-[oklch(0.66_0.15_300)]"
-                      }`}
-                    />
+            {demoEmpty ? (
+              <div className="flex flex-col items-center justify-center py-6 text-center">
+                <DeviceMobileIcon
+                  size={32}
+                  className="animate-pulse text-muted-foreground/45"
+                />
 
-                    <span className="text-xs font-bold text-foreground/80">
-                      {seg.name}
-                    </span>
+                <span className="mt-2 text-xs font-bold text-foreground/80">
+                  Zero Usage Today
+                </span>
 
-                    <span className="text-[10px] font-medium text-muted-foreground">
-                      {Math.floor(seg.time / 60)}h {seg.time % 60}m
-                    </span>
-                  </div>
-                ))}
+                <p className="mt-1 max-w-[200px] text-[10px] text-muted-foreground/80">
+                  Spend time away from your device. Take a screen break.
+                </p>
               </div>
+            ) : (
+              <div className="flex items-center justify-between gap-2.5">
+                <div className="flex flex-col gap-2">
+                  {donutSegments.map((seg, idx) => (
+                    <div key={seg.id} className="flex items-center gap-2">
+                      <span
+                        className={`h-2.5 w-2.5 rounded-full ${
+                          idx === 0
+                            ? "bg-[oklch(0.65_0.15_250)]"
+                            : idx === 1
+                              ? "bg-[oklch(0.68_0.14_170)]"
+                              : "bg-[oklch(0.66_0.15_300)]"
+                        }`}
+                      />
 
-              {/* Seg Donut Chart */}
-              <div className="relative h-[90px] w-[90px]">
-                <svg className="h-full w-full">
-                  <circle
-                    cx={ringCenter}
-                    cy={ringCenter}
-                    r={donutRadius}
-                    fill="none"
-                    stroke="currentColor"
-                    className="text-muted/10 dark:text-muted/5"
-                    strokeWidth="8"
-                  />
+                      <span className="text-xs font-bold text-foreground/80">
+                        {seg.name}
+                      </span>
 
-                  {donutSegments.map((seg) => (
+                      <span className="text-[10px] font-medium text-muted-foreground">
+                        {Math.floor(seg.time / 60)}h {seg.time % 60}m
+                      </span>
+                    </div>
+                  ))}
+                </div>
+
+                <div className="relative h-[90px] w-[90px]">
+                  <svg className="h-full w-full">
                     <circle
-                      key={seg.id}
                       cx={ringCenter}
                       cy={ringCenter}
                       r={donutRadius}
                       fill="none"
-                      className={seg.colorClass}
+                      stroke="currentColor"
+                      className="text-muted/10 dark:text-muted/5"
                       strokeWidth="8"
-                      strokeDasharray={seg.dashArray}
-                      strokeLinecap="round"
-                      style={{
-                        transformOrigin: "45px 45px",
-                        transform: `rotate(${seg.rotation}deg)`,
-                      }}
                     />
-                  ))}
-                </svg>
+
+                    {donutSegments.map((seg) => (
+                      <circle
+                        key={seg.id}
+                        cx={ringCenter}
+                        cy={ringCenter}
+                        r={donutRadius}
+                        fill="none"
+                        className={seg.colorClass}
+                        strokeWidth="8"
+                        strokeDasharray={seg.dashArray}
+                        strokeLinecap="round"
+                        style={{
+                          transformOrigin: "45px 45px",
+                          transform: `rotate(${seg.rotation}deg)`,
+                        }}
+                      />
+                    ))}
+                  </svg>
+                </div>
               </div>
-            </div>
+            )}
           </div>
 
-          {/* Most used app categories Grid */}
           <div
             onClick={handleCategoriesCardClick}
-            className="flex cursor-pointer flex-col gap-2.5 rounded-3xl border border-border bg-card/60 p-4 backdrop-blur-xl transition-all duration-300 hover:scale-[1.015] hover:bg-card/85 hover:shadow-sm"
+            className="flex cursor-pointer flex-col gap-3 rounded-2xl border border-border bg-gradient-to-tr from-white/60 to-indigo-50/30 p-4.5 backdrop-blur-xl transition-all duration-300 active:scale-[0.98] dark:from-slate-900/60 dark:to-indigo-950/20"
           >
             <div className="flex items-center justify-between pr-1">
-              <span className="pl-1 text-[10px] font-bold tracking-wider text-muted-foreground uppercase">
+              <span className="text-[10px] font-bold tracking-wider text-muted-foreground uppercase">
                 Most used app categories
               </span>
+
               <CaretRightIcon size={12} className="text-muted-foreground/60" />
             </div>
 
-            <div className="flex scrollbar-none gap-3 overflow-x-auto pb-1">
-              <div className="flex gap-3 px-1">
-                <div className="flex h-[105px] w-[110px] shrink-0 flex-col justify-between rounded-2xl border border-border/80 bg-secondary/40 p-4">
-                  <div className="flex h-8 w-8 items-center justify-center rounded-full border border-purple-500/20 bg-purple-500/10 text-purple-600 dark:text-purple-400">
-                    <ChatCircleIcon size={18} weight="fill" />
-                  </div>
-                  <div>
-                    <span className="text-[10px] font-bold text-muted-foreground">
-                      Social
-                    </span>
-                    <h4 className="mt-0.5 text-xs font-extrabold text-foreground/90">
-                      1 h 28 m
-                    </h4>
-                  </div>
-                </div>
+            {demoEmpty ? (
+              <div className="py-4 text-center text-xs font-bold text-muted-foreground/80">
+                No categories tracked
+              </div>
+            ) : (
+              <div className="flex scrollbar-none gap-3 overflow-x-auto pb-1">
+                <div className="flex gap-3 px-1">
+                  <div className="flex h-[105px] w-[110px] shrink-0 flex-col justify-between rounded-xl border border-border/80 bg-white/40 p-3.5 dark:bg-slate-800/40">
+                    <div className="flex h-7 w-7 items-center justify-center rounded-full border border-purple-500/20 bg-purple-500/10 text-purple-600 dark:text-purple-400">
+                      <ChatCircleIcon size={16} weight="fill" />
+                    </div>
 
-                <div className="flex h-[105px] w-[110px] shrink-0 flex-col justify-between rounded-2xl border border-border/80 bg-secondary/40 p-4">
-                  <div className="flex h-8 w-8 items-center justify-center rounded-full border border-amber-500/20 bg-amber-500/10 text-amber-600 dark:text-amber-400">
-                    <VideoIcon size={18} weight="fill" />
-                  </div>
-                  <div>
-                    <span className="text-[10px] font-bold text-muted-foreground">
-                      Shopping
-                    </span>
-                    <h4 className="mt-0.5 text-xs font-extrabold text-foreground/90">
-                      36 m
-                    </h4>
-                  </div>
-                </div>
+                    <div>
+                      <span className="text-[10px] font-bold text-muted-foreground">
+                        Social
+                      </span>
 
-                <div className="flex h-[105px] w-[110px] shrink-0 flex-col justify-between rounded-2xl border border-border/80 bg-secondary/40 p-4">
-                  <div className="flex h-8 w-8 items-center justify-center rounded-full border border-blue-500/20 bg-blue-500/10 text-blue-600 dark:text-blue-400">
-                    <BookOpenIcon size={18} weight="fill" />
+                      <h4 className="mt-0.5 text-xs font-extrabold text-foreground/90">
+                        1 h 28 m
+                      </h4>
+                    </div>
                   </div>
-                  <div>
-                    <span className="text-[10px] font-bold text-muted-foreground">
-                      Productive
-                    </span>
-                    <h4 className="mt-0.5 text-xs font-extrabold text-foreground/90">
-                      9 m
-                    </h4>
+
+                  <div className="flex h-[105px] w-[110px] shrink-0 flex-col justify-between rounded-xl border border-border/80 bg-white/40 p-3.5 dark:bg-slate-800/40">
+                    <div className="flex h-7 w-7 items-center justify-center rounded-full border border-amber-500/20 bg-amber-500/10 text-amber-600 dark:text-amber-400">
+                      <VideoIcon size={16} weight="fill" />
+                    </div>
+
+                    <div>
+                      <span className="text-[10px] font-bold text-muted-foreground">
+                        Shopping
+                      </span>
+
+                      <h4 className="mt-0.5 text-xs font-extrabold text-foreground/90">
+                        36 m
+                      </h4>
+                    </div>
+                  </div>
+
+                  <div className="flex h-[105px] w-[110px] shrink-0 flex-col justify-between rounded-xl border border-border/80 bg-white/40 p-3.5 dark:bg-slate-800/40">
+                    <div className="flex h-7 w-7 items-center justify-center rounded-full border border-purple-500/20 bg-blue-500/10 text-blue-600 dark:text-blue-400">
+                      <BookOpenIcon size={16} weight="fill" />
+                    </div>
+
+                    <div>
+                      <span className="text-[10px] font-bold text-muted-foreground">
+                        Productive
+                      </span>
+
+                      <h4 className="mt-0.5 text-xs font-extrabold text-foreground/90">
+                        9 m
+                      </h4>
+                    </div>
                   </div>
                 </div>
               </div>
-            </div>
+            )}
           </div>
 
-          {/* App timers Section */}
           <div
             onClick={handleTimersCardClick}
-            className="flex cursor-pointer flex-col gap-4 rounded-3xl border border-border bg-card/60 p-5 shadow-sm backdrop-blur-xl transition-all duration-300 hover:scale-[1.015] hover:bg-card/85 hover:shadow-sm"
+            className="flex cursor-pointer flex-col gap-4 rounded-2xl border border-border bg-gradient-to-tr from-white/60 to-purple-50/50 p-4.5 shadow-sm backdrop-blur-xl transition-all duration-300 active:scale-[0.98] dark:from-slate-900/60 dark:to-purple-950/20"
           >
             <div className="flex items-center justify-between">
               <div>
                 <h3 className="font-heading text-sm font-semibold tracking-tight text-foreground/90">
                   App timers
                 </h3>
+
                 <p className="mt-1 text-[10.5px] leading-relaxed font-medium text-muted-foreground">
                   If you're using certain apps more than you'd like, set a
                   timer.
                 </p>
               </div>
+
               <CaretRightIcon
                 size={12}
                 className="shrink-0 text-muted-foreground/60"
@@ -489,47 +532,51 @@ export const LayoutPersonal = () => {
             </div>
 
             <div className="flex flex-col gap-3">
-              <div className="flex items-center justify-between rounded-2xl border border-border/40 bg-secondary/30 p-3.5 hover:bg-secondary/50">
+              <div className="flex items-center justify-between rounded-xl border border-border/40 bg-white/40 p-3 dark:bg-slate-800/40">
                 <div className="flex items-center gap-3">
                   <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-gradient-to-tr from-purple-500 to-pink-500 font-bold text-white shadow-sm">
                     I
                   </div>
+
                   <div>
                     <span className="text-xs font-bold text-foreground/80">
                       Instagram
                     </span>
+
                     <p className="mt-0.5 text-[10px] font-medium text-muted-foreground">
-                      Used: 1h 50m
+                      Used: {demoEmpty ? "0m" : "1h 50m"}
                     </p>
                   </div>
                 </div>
 
                 <button
                   onClick={() => handleOpenSetTimer("insta")}
-                  className="h-8 cursor-pointer rounded-xl border border-border bg-secondary px-3.5 text-[10px] font-bold text-foreground/80 hover:bg-muted"
+                  className="h-8 cursor-pointer rounded-xl border border-border bg-secondary/80 px-3 text-[10px] font-bold text-foreground/80 transition-all hover:bg-secondary active:scale-95"
                 >
                   Set timer
                 </button>
               </div>
 
-              <div className="flex items-center justify-between rounded-2xl border border-border/40 bg-secondary/30 p-3.5 hover:bg-secondary/50">
+              <div className="flex items-center justify-between rounded-xl border border-border/40 bg-white/40 p-3 dark:bg-slate-800/40">
                 <div className="flex items-center gap-3">
                   <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-gradient-to-tr from-sky-400 to-indigo-500 font-bold text-white shadow-sm">
                     S
                   </div>
+
                   <div>
                     <span className="text-xs font-bold text-foreground/80">
                       Social Apps
                     </span>
+
                     <p className="mt-0.5 text-[10px] font-medium text-muted-foreground">
-                      Used: 3h 15m
+                      Used: {demoEmpty ? "0m" : "3h 15m"}
                     </p>
                   </div>
                 </div>
 
                 <button
                   onClick={() => handleOpenSetTimer("social")}
-                  className="h-8 cursor-pointer rounded-xl border border-border bg-secondary px-3.5 text-[10px] font-bold text-foreground/80 hover:bg-muted"
+                  className="h-8 cursor-pointer rounded-xl border border-border bg-secondary/80 px-3 text-[10px] font-bold text-foreground/80 transition-all hover:bg-secondary active:scale-95"
                 >
                   Set timer
                 </button>
@@ -537,15 +584,15 @@ export const LayoutPersonal = () => {
             </div>
           </div>
 
-          {/* Screen time goal Card */}
           <div
             onClick={handleGoToGoal}
-            className="flex cursor-pointer flex-col gap-4 rounded-3xl border border-border bg-card/60 p-5 shadow-sm backdrop-blur-xl transition-all duration-300 hover:scale-[1.015] hover:bg-card/85 hover:shadow-sm"
+            className="to-sand-50/50 flex cursor-pointer flex-col gap-4 rounded-2xl border border-border bg-gradient-to-tr from-white/60 p-4.5 shadow-sm backdrop-blur-xl transition-all duration-300 active:scale-[0.98] dark:from-slate-900/60 dark:to-orange-950/10"
           >
             <div className="flex items-center justify-between">
               <h3 className="font-heading text-sm font-semibold tracking-tight text-foreground/90">
                 Screen time goal
               </h3>
+
               <CaretRightIcon size={12} className="text-muted-foreground/60" />
             </div>
 
@@ -554,13 +601,14 @@ export const LayoutPersonal = () => {
                 <svg className="absolute top-0 left-0 h-[100px] w-[180px]">
                   <defs>
                     <linearGradient
-                      id="usageRingGrad"
+                      id="usageRingGradB"
                       x1="0%"
                       y1="0%"
                       x2="100%"
                       y2="0%"
                     >
                       <stop offset="0%" stopColor="oklch(0.68 0.14 170)" />
+
                       <stop offset="100%" stopColor="oklch(0.56 0.12 250)" />
                     </linearGradient>
                   </defs>
@@ -577,7 +625,7 @@ export const LayoutPersonal = () => {
                   <path
                     d="M 20 80 A 70 70 0 0 1 160 80"
                     fill="none"
-                    stroke="url(#usageRingGrad)"
+                    stroke="url(#usageRingGradB)"
                     strokeWidth="10"
                     strokeLinecap="round"
                     strokeDasharray={semiCircumference}
@@ -590,7 +638,7 @@ export const LayoutPersonal = () => {
                     {Math.floor(todayRemaining / 60)}h {todayRemaining % 60}m
                   </span>
 
-                  <span className="mt-0.5 text-[9px] font-bold tracking-wider text-muted-foreground uppercase">
+                  <span className="mt-0.5 text-[9.5px] font-bold tracking-wider text-muted-foreground uppercase">
                     Remaining
                   </span>
                 </div>
@@ -598,17 +646,16 @@ export const LayoutPersonal = () => {
 
               <button
                 onClick={handleGoToGoal}
-                className="h-9.5 cursor-pointer rounded-xl border border-border bg-secondary px-4 text-xs font-bold text-foreground/80 transition-colors hover:bg-muted"
+                className="h-9.5 cursor-pointer rounded-xl border border-border bg-white/60 px-4 text-xs font-bold text-foreground/80 transition-all active:scale-95 dark:bg-slate-800/60"
               >
-                Goal 6 h
+                Goal {Math.floor(screenTimeGoal / 60)} h
               </button>
             </div>
           </div>
 
-          {/* Parental controls Shortcut Card */}
           <div
             onClick={() => setActiveTab("parental")}
-            className="flex cursor-pointer flex-col gap-2 rounded-3xl border border-border bg-card/60 p-5 shadow-sm backdrop-blur-xl transition-all duration-300 hover:scale-[1.015] hover:bg-card/85 hover:shadow-sm"
+            className="flex cursor-pointer flex-col gap-2 rounded-2xl border border-border bg-gradient-to-tr from-white/60 to-purple-50/50 p-4.5 shadow-sm backdrop-blur-xl transition-all duration-300 active:scale-[0.98] dark:from-slate-900/60 dark:to-purple-950/20"
           >
             <span className="text-[9px] font-bold tracking-wider text-muted-foreground uppercase">
               Parental controls
@@ -631,12 +678,11 @@ export const LayoutPersonal = () => {
         )
 
       return (
-        <div className="flex flex-col gap-5">
-          {/* Header */}
+        <div className="flex flex-col gap-4">
           <div className="flex items-center justify-between px-1">
             <button
               onClick={handleGoToHome}
-              className="flex h-10 w-10 cursor-pointer items-center justify-center rounded-full border border-border/40 bg-secondary/80 text-foreground transition-colors hover:bg-secondary"
+              className="flex h-10 w-10 cursor-pointer items-center justify-center rounded-full border border-border/40 bg-white/40 text-foreground transition-colors active:scale-[0.95] dark:bg-slate-800/40"
             >
               <ArrowLeftIcon size={16} weight="bold" />
             </button>
@@ -647,14 +693,13 @@ export const LayoutPersonal = () => {
 
             <button
               onClick={toggleViewMode}
-              className="cursor-pointer text-xs font-extrabold text-primary hover:underline"
+              className="cursor-pointer text-xs font-extrabold text-primary hover:underline active:scale-95"
             >
               {dashboardViewMode === "apps" ? "Show categories" : "Show apps"}
             </button>
           </div>
 
-          {/* Date calendar row */}
-          <div className="flex items-center justify-between rounded-2xl border border-border/40 bg-secondary/40 px-2 py-1.5 select-none">
+          <div className="flex items-center justify-between rounded-xl border border-border/40 bg-white/40 px-2 py-1.5 select-none dark:bg-slate-800/40">
             {["21", "22", "23", "24", "25", "26", "27"].map((day) => {
               const isSelected = selectedDate === day
               return (
@@ -673,37 +718,39 @@ export const LayoutPersonal = () => {
             })}
           </div>
 
-          {/* Card 1: Stacked screen time bar chart */}
-          <div className="flex flex-col gap-4 rounded-3xl border border-border bg-card/60 p-5 shadow-sm backdrop-blur-xl">
+          <div className="flex flex-col gap-4 rounded-2xl border border-border bg-gradient-to-tr from-white/60 to-purple-50/50 p-4.5 shadow-sm backdrop-blur-xl dark:from-slate-900/60 dark:to-purple-950/20">
             <div>
               <span className="text-[10px] font-bold tracking-wider text-muted-foreground uppercase">
                 Total screen time
               </span>
 
               <h3 className="mt-1 font-heading text-2xl font-black text-foreground/90">
-                {formattedTotalScreenTime}
+                {effectiveFormattedTotalScreenTime}
               </h3>
             </div>
 
             {/* Bars container */}
             <div className="flex h-32 w-full items-end justify-between px-2 pt-4">
               {weeklyUsage.map((val) => {
-                const dayHeight = (val.minutes / maxWeeklyMins) * 100
-                const isSelected = selectedDate === "26" && val.day === "Fri"
+                const heightPercent = demoEmpty
+                  ? 0
+                  : (val.minutes / maxWeeklyMins) * 100
+                const isSelected =
+                  !demoEmpty && selectedDate === "26" && val.day === "Fri"
 
                 return (
                   <div
                     key={val.day}
                     className="flex flex-1 flex-col items-center gap-1.5"
                   >
-                    <div className="flex h-24 w-4.5 items-end overflow-hidden rounded-full bg-secondary dark:bg-slate-800">
+                    <div className="flex h-24 w-4 items-end overflow-hidden rounded-full border border-border/30 bg-white/60 dark:bg-slate-800/60">
                       <div
                         className={`w-full rounded-full transition-all duration-300 ${
                           isSelected
                             ? "bg-[oklch(0.56_0.12_250)]"
                             : "bg-primary/45"
                         }`}
-                        style={{ height: `${dayHeight}%` }}
+                        style={{ height: `${heightPercent}%` }}
                       />
                     </div>
 
@@ -721,123 +768,160 @@ export const LayoutPersonal = () => {
               })}
             </div>
 
-            {/* Interactive app list */}
-            <div className="flex flex-col gap-2.5 border-t border-border/40 pt-3.5">
-              {appStats.map((app, idx) => {
-                const colors = [
-                  "bg-[oklch(0.65_0.15_250)]",
-                  "bg-[oklch(0.68_0.14_170)]",
-                  "bg-[oklch(0.66_0.15_300)]",
-                  "bg-[oklch(0.60_0.10_120)]",
-                  "bg-[oklch(0.70_0.08_80)]",
-                  "bg-[oklch(0.62_0.12_25)]",
-                  "bg-[oklch(0.64_0.10_145)]",
-                ]
-                const color = colors[idx % colors.length]
-                const sharePercent = Math.round(
-                  (app.timeSpent / (totalScreenTimeMinutes || 1)) * 100
-                )
+            <div className="flex flex-col gap-2.5 border-t border-border/40 pt-3">
+              {demoEmpty ? (
+                <div className="py-6 text-center text-xs font-bold text-muted-foreground/80">
+                  No application details recorded
+                </div>
+              ) : (
+                appStats.map((app, idx) => {
+                  const strokeColors = [
+                    "oklch(0.65 0.15 250)",
+                    "oklch(0.68 0.14 170)",
+                    "oklch(0.66 0.15 300)",
+                    "oklch(0.60 0.10 120)",
+                    "oklch(0.70 0.08 80)",
+                    "oklch(0.62 0.12 25)",
+                    "oklch(0.64 0.10 145)",
+                  ]
 
-                return (
-                  <button
-                    key={app.id}
-                    onClick={() => setActiveAppDetailId(app.id)}
-                    className="flex cursor-pointer items-center justify-between rounded-xl px-2 py-1.5 transition-all duration-200 hover:bg-secondary/55"
-                  >
-                    <div className="flex min-w-0 flex-1 items-center gap-2.5">
-                      <span
-                        className={`h-2.5 w-2.5 shrink-0 rounded-full ${color}`}
-                      />
-                      <span className="truncate text-xs font-bold text-foreground/80">
-                        {app.name}
-                      </span>
-                      <div className="ml-2 h-1.5 max-w-[80px] flex-1 overflow-hidden rounded-full bg-muted/40">
-                        <div
-                          className={`h-full rounded-full ${color}`}
-                          style={{ width: `${sharePercent}%` }}
+                  const strokeColor = strokeColors[idx % strokeColors.length]
+                  const sharePercent = Math.round(
+                    (app.timeSpent / (effectiveTotalScreenTimeMinutes || 1)) *
+                      100
+                  )
+
+                  // Circular Progress math: radius = 7, circumference = 2 * PI * 7 = 43.98
+                  const circleCirc = 43.98
+                  const strokeOffset = circleCirc * (1 - sharePercent / 100)
+
+                  return (
+                    <button
+                      key={app.id}
+                      onClick={() => setActiveAppDetailId(app.id)}
+                      className="flex cursor-pointer items-center justify-between rounded-xl border border-border/30 bg-white/30 px-2.5 py-2 transition-all duration-200 active:scale-[0.98] dark:bg-slate-800/30"
+                    >
+                      <div className="flex min-w-0 flex-1 items-center gap-2.5">
+                        {/* Circular ring next to each app item instead of linear line */}
+                        <div className="relative flex h-6 w-6 shrink-0 items-center justify-center">
+                          <svg className="h-full w-full -rotate-90">
+                            <circle
+                              cx="12"
+                              cy="12"
+                              r="7"
+                              fill="none"
+                              stroke="currentColor"
+                              className="text-muted/10 dark:text-muted/5"
+                              strokeWidth="2.5"
+                            />
+                            <circle
+                              cx="12"
+                              cy="12"
+                              r="7"
+                              fill="none"
+                              stroke={strokeColor}
+                              strokeWidth="2.5"
+                              strokeDasharray={circleCirc}
+                              strokeDashoffset={strokeOffset}
+                              strokeLinecap="round"
+                            />
+                          </svg>
+
+                          <span className="absolute text-[7px] font-black text-foreground/80">
+                            {sharePercent}%
+                          </span>
+                        </div>
+
+                        <span className="truncate text-xs font-bold text-foreground/80">
+                          {app.name}
+                        </span>
+                      </div>
+
+                      <div className="flex items-center gap-1">
+                        <span className="text-[10px] font-extrabold text-muted-foreground">
+                          {Math.floor(app.timeSpent / 60)}h {app.timeSpent % 60}
+                          m
+                        </span>
+
+                        <CaretRightIcon
+                          size={12}
+                          className="text-muted-foreground/55"
                         />
                       </div>
-                    </div>
-                    <div className="flex items-center gap-1">
-                      <span className="text-[10px] font-extrabold text-muted-foreground">
-                        {Math.floor(app.timeSpent / 60)}h {app.timeSpent % 60}m
-                      </span>
-                      <CaretRightIcon
-                        size={12}
-                        className="text-muted-foreground/55"
-                      />
-                    </div>
-                  </button>
-                )
-              })}
+                    </button>
+                  )
+                })
+              )}
             </div>
           </div>
 
-          {/* Card 2: Notifications */}
-          <div className="flex flex-col gap-4 rounded-3xl border border-border bg-card/60 p-5 shadow-sm backdrop-blur-xl">
+          <div className="flex flex-col gap-4 rounded-2xl border border-border bg-gradient-to-tr from-white/60 to-purple-50/50 p-4.5 shadow-sm backdrop-blur-xl dark:from-slate-900/60 dark:to-purple-950/20">
             <div>
               <span className="text-[10px] font-bold tracking-wider text-muted-foreground uppercase">
                 Notifications today
               </span>
 
               <h3 className="mt-1 font-heading text-2xl font-black text-foreground/90">
-                {totalNotifications}
+                {effectiveTotalNotifications}
               </h3>
             </div>
 
             <div className="flex h-28 w-full items-end justify-between px-2">
-              {weeklyUsage.map((val) => (
-                <div
-                  key={val.day}
-                  className="flex flex-1 flex-col items-center gap-1.5"
-                >
-                  <div className="flex h-20 w-3.5 items-end overflow-hidden rounded-full bg-secondary dark:bg-slate-800">
-                    <div
-                      className="w-full rounded-full bg-[oklch(0.68_0.14_170)]"
-                      style={{
-                        height: `${(val.minutes / maxWeeklyMins) * 80}%`,
-                      }}
-                    />
+              {weeklyUsage.map((val) => {
+                const h = demoEmpty ? 0 : (val.minutes / maxWeeklyMins) * 80
+                return (
+                  <div
+                    key={val.day}
+                    className="flex flex-1 flex-col items-center gap-1.5"
+                  >
+                    <div className="flex h-20 w-3.5 items-end overflow-hidden rounded-full border border-border/30 bg-white/60 dark:bg-slate-800/60">
+                      <div
+                        className="w-full rounded-full bg-[oklch(0.68_0.14_170)]"
+                        style={{ height: `${h}%` }}
+                      />
+                    </div>
+
+                    <span className="text-[9px] font-bold text-muted-foreground">
+                      {val.day.charAt(0)}
+                    </span>
                   </div>
-                  <span className="text-[9px] font-bold text-muted-foreground">
-                    {val.day.charAt(0)}
-                  </span>
-                </div>
-              ))}
+                )
+              })}
             </div>
           </div>
 
-          {/* Card 3: Unlocks */}
-          <div className="mb-4 flex flex-col gap-4 rounded-3xl border border-border bg-card/60 p-5 shadow-sm backdrop-blur-xl">
+          <div className="mb-4 flex flex-col gap-4 rounded-2xl border border-border bg-gradient-to-tr from-white/60 to-purple-50/50 p-4.5 shadow-sm backdrop-blur-xl dark:from-slate-900/60 dark:to-purple-950/20">
             <div>
               <span className="text-[10px] font-bold tracking-wider text-muted-foreground uppercase">
                 Unlocks today
               </span>
 
               <h3 className="mt-1 font-heading text-2xl font-black text-foreground/90">
-                {totalPickups}
+                {effectiveTotalPickups}
               </h3>
             </div>
 
             <div className="flex h-28 w-full items-end justify-between px-2">
-              {weeklyUsage.map((val) => (
-                <div
-                  key={val.day}
-                  className="flex flex-1 flex-col items-center gap-1.5"
-                >
-                  <div className="flex h-20 w-3.5 items-end overflow-hidden rounded-full bg-secondary dark:bg-slate-800">
-                    <div
-                      className="w-full rounded-full bg-[oklch(0.66_0.15_300)]"
-                      style={{
-                        height: `${(val.minutes / maxWeeklyMins) * 90}%`,
-                      }}
-                    />
+              {weeklyUsage.map((val) => {
+                const h = demoEmpty ? 0 : (val.minutes / maxWeeklyMins) * 90
+                return (
+                  <div
+                    key={val.day}
+                    className="flex flex-1 flex-col items-center gap-1.5"
+                  >
+                    <div className="flex h-20 w-3.5 items-end overflow-hidden rounded-full border border-border/30 bg-white/60 dark:bg-slate-800/60">
+                      <div
+                        className="w-full rounded-full bg-[oklch(0.66_0.15_300)]"
+                        style={{ height: `${h}%` }}
+                      />
+                    </div>
+
+                    <span className="text-[9px] font-bold text-muted-foreground">
+                      {val.day.charAt(0)}
+                    </span>
                   </div>
-                  <span className="text-[9px] font-bold text-muted-foreground">
-                    {val.day.charAt(0)}
-                  </span>
-                </div>
-              ))}
+                )
+              })}
             </div>
           </div>
         </div>
@@ -849,12 +933,11 @@ export const LayoutPersonal = () => {
       const isOver = activeGoalDetail.status === "over"
 
       return (
-        <div className="flex flex-col gap-5">
-          {/* Header */}
+        <div className="flex flex-col gap-4">
           <div className="flex items-center justify-between px-1">
             <button
               onClick={handleGoToHome}
-              className="flex h-10 w-10 cursor-pointer items-center justify-center rounded-full border border-border/40 bg-secondary/80 text-foreground transition-colors hover:bg-secondary"
+              className="flex h-10 w-10 cursor-pointer items-center justify-center rounded-full border border-border/40 bg-white/40 text-foreground transition-colors active:scale-[0.95] dark:bg-slate-800/40"
             >
               <ArrowLeftIcon size={16} weight="bold" />
             </button>
@@ -866,8 +949,7 @@ export const LayoutPersonal = () => {
             <div className="h-10 w-10 shrink-0" />
           </div>
 
-          {/* Calendar Grid card */}
-          <div className="flex flex-col gap-4 rounded-3xl border border-border bg-card/60 p-5 shadow-sm backdrop-blur-xl">
+          <div className="flex flex-col gap-4 rounded-2xl border border-border bg-gradient-to-tr from-white/60 to-purple-50/50 p-4.5 shadow-sm backdrop-blur-xl dark:from-slate-900/60 dark:to-purple-950/20">
             <div className="mb-2 flex items-center justify-between">
               <span className="text-xs font-extrabold text-foreground/90">
                 30 May – 26 June
@@ -893,7 +975,7 @@ export const LayoutPersonal = () => {
                   <button
                     key={`${d.month}_${d.date}`}
                     onClick={() => handleSelectGoalDate(d.date)}
-                    className={`relative flex h-9.5 w-9.5 cursor-pointer items-center justify-center rounded-full transition-all ${
+                    className={`relative flex h-9 w-9 cursor-pointer items-center justify-center rounded-full transition-all ${
                       isSelected ? "ring-2 ring-primary ring-offset-2" : ""
                     }`}
                   >
@@ -924,21 +1006,25 @@ export const LayoutPersonal = () => {
             <div className="mt-2 flex items-center justify-between px-1 text-[10px] font-bold text-muted-foreground/80">
               <div className="flex items-center gap-1">
                 <span className="h-2 w-2 rounded-full bg-primary" />
+
                 <span>Used</span>
               </div>
+
               <div className="flex items-center gap-1">
                 <span className="h-2 w-2 rounded-full bg-muted-foreground/40" />
+
                 <span>Remaining</span>
               </div>
+
               <div className="flex items-center gap-1">
                 <span className="h-2 w-2 rounded-full bg-rose-500" />
+
                 <span>Over goal</span>
               </div>
             </div>
           </div>
 
-          {/* Semicircular progress display */}
-          <div className="flex flex-col items-center gap-4 rounded-3xl border border-border bg-card/60 p-6 shadow-sm backdrop-blur-xl">
+          <div className="flex flex-col items-center gap-4 rounded-2xl border border-border bg-gradient-to-tr from-white/60 to-purple-50/50 p-6 shadow-sm backdrop-blur-xl dark:from-slate-900/60 dark:to-purple-950/20">
             <h4 className="text-xs font-bold tracking-wider text-muted-foreground uppercase">
               {activeGoalDetail.date} June usage detail
             </h4>
@@ -953,6 +1039,7 @@ export const LayoutPersonal = () => {
                   strokeWidth="10.5"
                   strokeLinecap="round"
                 />
+
                 <path
                   d="M 20 80 A 70 70 0 0 1 160 80"
                   fill="none"
@@ -982,6 +1069,7 @@ export const LayoutPersonal = () => {
                       )}
                       h {(activeGoalDetail.used - activeGoalDetail.goal) % 60}m
                     </span>
+
                     <span className="mt-0.5 text-[9px] font-bold tracking-wider text-rose-400 uppercase">
                       Over goal
                     </span>
@@ -994,6 +1082,7 @@ export const LayoutPersonal = () => {
                       )}
                       h {(activeGoalDetail.goal - activeGoalDetail.used) % 60}m
                     </span>
+
                     <span className="mt-0.5 text-[9px] font-bold tracking-wider text-muted-foreground uppercase">
                       Remaining
                     </span>
@@ -1004,7 +1093,7 @@ export const LayoutPersonal = () => {
 
             <button
               onClick={handleOpenGoalPicker}
-              className="h-10 cursor-pointer rounded-xl border border-border bg-secondary px-5 text-xs font-bold text-foreground/80 hover:bg-muted"
+              className="h-10 cursor-pointer rounded-xl border border-border bg-secondary px-5 text-xs font-bold text-foreground/80 transition-all hover:bg-muted active:scale-95"
             >
               Goal {Math.floor(screenTimeGoal / 60)} h
             </button>
@@ -1016,12 +1105,11 @@ export const LayoutPersonal = () => {
     // 4. WEEKLY REPORT SPLINE & HEATMAP VIEW
     if (wellbeingSubPage === "report") {
       return (
-        <div className="flex flex-col gap-5">
-          {/* Header */}
+        <div className="flex flex-col gap-4">
           <div className="flex items-center justify-between px-1">
             <button
               onClick={handleGoToHome}
-              className="flex h-10 w-10 cursor-pointer items-center justify-center rounded-full border border-border/40 bg-secondary/80 text-foreground transition-colors hover:bg-secondary"
+              className="flex h-10 w-10 cursor-pointer items-center justify-center rounded-full border border-border/40 bg-white/40 text-foreground transition-colors active:scale-[0.95] dark:bg-slate-800/40"
             >
               <ArrowLeftIcon size={16} weight="bold" />
             </button>
@@ -1030,7 +1118,7 @@ export const LayoutPersonal = () => {
               Weekly report
             </h2>
 
-            <button className="flex h-10 w-10 cursor-pointer items-center justify-center rounded-full border border-border/40 bg-secondary/80 text-foreground transition-colors hover:bg-secondary">
+            <button className="flex h-10 w-10 cursor-pointer items-center justify-center rounded-full border border-border/40 bg-white/40 text-foreground active:scale-[0.95] dark:bg-slate-800/40">
               <DotsThreeVerticalIcon size={20} weight="bold" />
             </button>
           </div>
@@ -1039,6 +1127,7 @@ export const LayoutPersonal = () => {
             <span className="text-xs font-bold text-muted-foreground">
               14 June - 20 June (Week 25)
             </span>
+
             <div className="flex gap-1.5 select-none">
               {["W23", "W24", "W25"].map((w) => (
                 <span
@@ -1046,7 +1135,7 @@ export const LayoutPersonal = () => {
                   className={`rounded-md px-2 py-0.5 text-[9.5px] font-black ${
                     w === "W25"
                       ? "bg-primary text-primary-foreground shadow-sm"
-                      : "bg-secondary text-muted-foreground"
+                      : "bg-white/40 text-muted-foreground dark:bg-slate-800/40"
                   }`}
                 >
                   {w}
@@ -1055,15 +1144,14 @@ export const LayoutPersonal = () => {
             </div>
           </div>
 
-          {/* Card 1: Hatched weekly bars */}
-          <div className="flex flex-col gap-4 rounded-3xl border border-border bg-card/60 p-5 shadow-sm backdrop-blur-xl">
+          <div className="flex flex-col gap-4 rounded-2xl border border-border bg-gradient-to-tr from-white/60 to-purple-50/50 p-4.5 shadow-sm backdrop-blur-xl dark:from-slate-900/60 dark:to-purple-950/20">
             <div>
               <span className="text-[10px] font-bold tracking-wider text-muted-foreground uppercase">
                 Screen time by week
               </span>
 
               <h3 className="mt-1 font-heading text-2xl font-black text-foreground/95">
-                6 h 16 m
+                {demoEmpty ? "0m" : "6 h 16 m"}
               </h3>
 
               <p className="mt-0.5 text-[10px] font-semibold text-muted-foreground">
@@ -1079,15 +1167,17 @@ export const LayoutPersonal = () => {
               </div>
 
               {weeklyUsage.map((val) => {
-                const heightPercent = (val.minutes / maxWeeklyMins) * 100
-                const isOver = val.minutes > val.goalMinutes
+                const heightPercent = demoEmpty
+                  ? 0
+                  : (val.minutes / maxWeeklyMins) * 100
+                const isOver = !demoEmpty && val.minutes > val.goalMinutes
 
                 return (
                   <div
                     key={val.day}
                     className="relative z-10 flex flex-1 flex-col items-center gap-1.5"
                   >
-                    <div className="relative flex h-20 w-3.5 items-end overflow-hidden rounded-full bg-secondary shadow-inner dark:bg-slate-800">
+                    <div className="relative flex h-20 w-3.5 items-end overflow-hidden rounded-full border border-border/30 bg-white/60 shadow-inner dark:bg-slate-800/60">
                       <div
                         className={`w-full rounded-full transition-all duration-300 ${
                           isOver ? "bg-rose-500" : "bg-emerald-500"
@@ -1111,14 +1201,18 @@ export const LayoutPersonal = () => {
             <div className="flex items-center justify-between border-t border-border/40 pt-3 text-[10px] font-bold">
               <div className="flex items-center gap-1.5">
                 <span className="h-2.5 w-2.5 rounded-full bg-emerald-500" />
+
                 <span className="text-muted-foreground">Goal achieved:</span>
-                <span className="font-extrabold text-foreground">4 days</span>
+
+                <span className="font-extrabold text-foreground">
+                  {demoEmpty ? "0 days" : "4 days"}
+                </span>
               </div>
             </div>
           </div>
 
-          {/* Card 2: Screen time balance awake ratio */}
-          <div className="flex flex-col gap-3 rounded-3xl border border-border bg-card/60 p-5 shadow-sm backdrop-blur-xl">
+          {/* Redesigned awake screen ratio to be side-by-side circular radial rings (NO horizontal bars) */}
+          <div className="flex flex-col gap-3 rounded-2xl border border-border bg-gradient-to-tr from-white/60 to-purple-50/50 p-4.5 shadow-sm backdrop-blur-xl dark:from-slate-900/60 dark:to-purple-950/20">
             <h3 className="font-heading text-xs font-bold tracking-wider text-muted-foreground uppercase">
               Screen time balance
             </h3>
@@ -1128,33 +1222,106 @@ export const LayoutPersonal = () => {
               not using your phone than using it.
             </p>
 
-            <div className="flex h-4.5 w-full overflow-hidden rounded-full border border-border/10 bg-secondary shadow-inner dark:bg-slate-800">
-              <div className="h-full bg-primary" style={{ width: "33%" }} />
-              <div
-                className="h-full bg-muted-foreground/30"
-                style={{ width: "67%" }}
-              />
-            </div>
+            {/* Redesigned progress: Side-by-side circular progress gauges */}
+            <div className="grid grid-cols-2 gap-4 border-t border-b border-border/30 py-1.5">
+              <div className="flex items-center gap-2.5 rounded-xl border border-border/30 bg-white/30 p-2.5 dark:bg-slate-800/30">
+                <div className="relative flex h-11 w-11 shrink-0 items-center justify-center">
+                  <svg className="h-full w-full -rotate-90">
+                    <circle
+                      cx="22"
+                      cy="22"
+                      r="16"
+                      fill="none"
+                      stroke="currentColor"
+                      className="text-muted/10 dark:text-muted/5"
+                      strokeWidth="4.5"
+                    />
+                    <circle
+                      cx="22"
+                      cy="22"
+                      r="16"
+                      fill="none"
+                      stroke="oklch(0.56 0.12 250)"
+                      strokeWidth="4.5"
+                      strokeDasharray={2 * Math.PI * 16}
+                      strokeDashoffset={
+                        2 * Math.PI * 16 * (1 - (demoEmpty ? 0 : 0.33))
+                      }
+                      strokeLinecap="round"
+                    />
+                  </svg>
 
-            <div className="mt-0.5 flex items-center justify-between px-1 text-[10px] font-bold text-muted-foreground/90">
-              <span>Screen on: 6 h 15 m</span>
-              <span>Screen off: 13 h 7 m</span>
+                  <span className="absolute text-[8px] font-black text-foreground">
+                    {demoEmpty ? "0%" : "33%"}
+                  </span>
+                </div>
+
+                <div>
+                  <span className="block text-[9.5px] leading-none font-bold text-muted-foreground uppercase">
+                    Screen On
+                  </span>
+                  <span className="mt-1 block text-xs font-black text-foreground/90">
+                    {demoEmpty ? "0m" : "6 h 15 m"}
+                  </span>
+                </div>
+              </div>
+
+              <div className="flex items-center gap-2.5 rounded-xl border border-border/30 bg-white/30 p-2.5 dark:bg-slate-800/30">
+                <div className="relative flex h-11 w-11 shrink-0 items-center justify-center">
+                  <svg className="h-full w-full -rotate-90">
+                    <circle
+                      cx="22"
+                      cy="22"
+                      r="16"
+                      fill="none"
+                      stroke="currentColor"
+                      className="text-muted/10 dark:text-muted/5"
+                      strokeWidth="4.5"
+                    />
+                    <circle
+                      cx="22"
+                      cy="22"
+                      r="16"
+                      fill="none"
+                      stroke="oklch(0.68 0.14 170)"
+                      strokeWidth="4.5"
+                      strokeDasharray={2 * Math.PI * 16}
+                      strokeDashoffset={
+                        2 * Math.PI * 16 * (1 - (demoEmpty ? 0 : 0.67))
+                      }
+                      strokeLinecap="round"
+                    />
+                  </svg>
+
+                  <span className="absolute text-[8px] font-black text-foreground">
+                    {demoEmpty ? "0%" : "67%"}
+                  </span>
+                </div>
+
+                <div>
+                  <span className="block text-[9.5px] leading-none font-bold text-muted-foreground uppercase">
+                    Screen Off
+                  </span>
+                  <span className="mt-1 block text-xs font-black text-foreground/90">
+                    {demoEmpty ? "0m" : "13 h 7 m"}
+                  </span>
+                </div>
+              </div>
             </div>
           </div>
 
-          {/* Card 3: Top usage category changed */}
-          <div className="flex flex-col gap-4 rounded-3xl border border-border bg-card/60 p-5 shadow-sm backdrop-blur-xl">
+          <div className="flex flex-col gap-4 rounded-2xl border border-border bg-gradient-to-tr from-white/60 to-purple-50/50 p-4.5 shadow-sm backdrop-blur-xl dark:from-slate-900/60 dark:to-purple-950/20">
             <div>
               <span className="text-[10px] font-bold tracking-wider text-muted-foreground uppercase">
                 Top usage category changed
               </span>
 
               <h3 className="mt-1 font-heading text-2xl font-black text-foreground/95">
-                Social
+                {demoEmpty ? "None" : "Social"}
               </h3>
 
               <p className="mt-0.5 text-[10.5px] font-bold text-muted-foreground">
-                33 h 47 m
+                {demoEmpty ? "0m" : "33 h 47 m"}
               </p>
 
               <p className="mt-1 text-[9.5px] font-medium text-muted-foreground/60">
@@ -1163,24 +1330,30 @@ export const LayoutPersonal = () => {
             </div>
 
             <div className="flex flex-col gap-2">
-              {[
-                { id: "insta", name: "Instagram", val: "16 h 38 m" },
-                { id: "wa", name: "WhatsApp", val: "11 h 47 m" },
-                { id: "rd", name: "Reddit", val: "1 h 41 m" },
-              ].map((app) => (
-                <div
-                  key={app.id}
-                  className="flex items-center justify-between py-1 text-xs font-semibold"
-                >
-                  <span className="text-foreground/90">{app.name}</span>
-                  <span className="text-muted-foreground">{app.val}</span>
+              {demoEmpty ? (
+                <div className="py-2 text-center text-xs text-muted-foreground/75">
+                  No data available
                 </div>
-              ))}
+              ) : (
+                [
+                  { id: "insta", name: "Instagram", val: "16 h 38 m" },
+                  { id: "wa", name: "WhatsApp", val: "11 h 47 m" },
+                  { id: "rd", name: "Reddit", val: "1 h 41 m" },
+                ].map((app) => (
+                  <div
+                    key={app.id}
+                    className="flex items-center justify-between py-1 text-xs font-semibold"
+                  >
+                    <span className="text-foreground/90">{app.name}</span>
+
+                    <span className="text-muted-foreground">{app.val}</span>
+                  </div>
+                ))
+              )}
             </div>
           </div>
 
-          {/* Card 4: Peak usage heatmap */}
-          <div className="mb-4 flex flex-col gap-4 rounded-3xl border border-border bg-card/60 p-5 shadow-sm backdrop-blur-xl">
+          <div className="mb-4 flex flex-col gap-4 rounded-2xl border border-border bg-gradient-to-tr from-white/60 to-purple-50/50 p-4.5 shadow-sm backdrop-blur-xl dark:from-slate-900/60 dark:to-purple-950/20">
             <div>
               <span className="text-[10px] font-bold tracking-wider text-muted-foreground uppercase">
                 Peak usage times
@@ -1201,7 +1374,7 @@ export const LayoutPersonal = () => {
                   <div className="flex flex-1 justify-between gap-1">
                     {row.values.map((v, hIdx) => {
                       const colors = [
-                        "bg-secondary/40 dark:bg-slate-800/40",
+                        "bg-white/40 dark:bg-slate-800/40 border border-border/10",
                         "bg-primary/20",
                         "bg-primary/50",
                         "bg-primary/95",
@@ -1238,8 +1411,7 @@ export const LayoutPersonal = () => {
       const handleSelectApp = (id: string) => setSelectedTimerApp(id)
 
       return (
-        <div className="flex flex-col gap-5">
-          {/* Header */}
+        <div className="flex flex-col gap-4">
           <div className="flex items-center justify-between px-1">
             <h2 className="font-heading text-lg font-bold tracking-tight text-foreground/95">
               Set timer
@@ -1248,8 +1420,7 @@ export const LayoutPersonal = () => {
             <div className="h-10 w-10 shrink-0" />
           </div>
 
-          {/* Form details */}
-          <div className="flex flex-col gap-4 rounded-3xl border border-border bg-card/60 p-5 shadow-sm backdrop-blur-xl">
+          <div className="flex flex-col gap-4 rounded-2xl border border-border bg-gradient-to-tr from-white/60 to-purple-50/50 p-4.5 shadow-sm backdrop-blur-xl dark:from-slate-900/60 dark:to-purple-950/20">
             <div className="flex flex-col gap-1.5">
               <span className="pl-1 text-[9.5px] font-bold tracking-wider text-muted-foreground uppercase">
                 Apps and app categories
@@ -1262,8 +1433,8 @@ export const LayoutPersonal = () => {
                     onClick={() => handleSelectApp(app.id)}
                     className={`cursor-pointer rounded-xl border px-3 py-1.5 text-[10px] font-extrabold whitespace-nowrap transition-all ${
                       selectedTimerApp === app.id
-                        ? "border-primary/20 bg-primary text-primary-foreground shadow-sm"
-                        : "border-border/50 bg-secondary/60 text-muted-foreground hover:text-foreground"
+                        ? "scale-[1.03] border-primary/20 bg-primary text-primary-foreground shadow-sm"
+                        : "border-border/55 bg-white/40 text-muted-foreground hover:text-foreground active:scale-95 dark:bg-slate-800/40"
                     }`}
                   >
                     {app.name}
@@ -1276,8 +1447,10 @@ export const LayoutPersonal = () => {
               <span className="pl-1 text-[9.5px] font-bold tracking-wider text-muted-foreground uppercase">
                 App timer name
               </span>
-              <div className="flex h-11 items-center justify-between rounded-xl border border-border bg-secondary/40 px-4 text-sm font-bold text-foreground">
+
+              <div className="flex h-11 items-center justify-between rounded-xl border border-border bg-white/40 px-4 text-sm font-bold text-foreground dark:bg-slate-800/40">
                 <span>{activeTimerApp.name} timer</span>
+
                 <HourglassIcon size={16} className="text-primary" />
               </div>
             </div>
@@ -1286,25 +1459,27 @@ export const LayoutPersonal = () => {
               <span className="pl-1 text-[9.5px] font-bold tracking-wider text-muted-foreground uppercase">
                 App timer alerts
               </span>
+
               <p className="pl-1 text-xs font-semibold text-primary/80">
                 1 minute, 5 minutes, 10 minutes before limit
               </p>
             </div>
           </div>
 
-          {/* Wheel Selector Schedule wrapper */}
-          <div className="flex flex-col gap-4 rounded-3xl border border-border bg-card/60 p-5 shadow-sm backdrop-blur-xl">
+          <div className="flex flex-col gap-4 rounded-2xl border border-border bg-gradient-to-tr from-white/60 to-purple-50/50 p-4.5 shadow-sm backdrop-blur-xl dark:from-slate-900/60 dark:to-purple-950/20">
             <div className="flex items-center justify-between">
               <span className="text-xs font-extrabold text-foreground/90">
                 Timer duration
               </span>
+
               <span className="text-xs font-black text-primary">
                 {wheelHours}h {wheelMinutes}m
               </span>
             </div>
 
-            <div className="relative my-1 flex h-[120px] items-center justify-center gap-4 overflow-hidden rounded-2xl border-t border-b border-border/40 bg-secondary/20 py-4">
+            <div className="relative my-1 flex h-[120px] items-center justify-center gap-4 overflow-hidden rounded-xl border border-border/40 bg-white/35 py-4 dark:bg-slate-900/45">
               <div className="pointer-events-none absolute inset-x-0 top-0 z-10 h-9 bg-gradient-to-b from-card to-transparent" />
+
               <div className="pointer-events-none absolute inset-x-0 bottom-0 z-10 h-9 bg-gradient-to-t from-card to-transparent" />
 
               <div className="flex h-24 flex-1 scrollbar-none flex-col items-center gap-2 overflow-y-auto">
@@ -1350,12 +1525,11 @@ export const LayoutPersonal = () => {
               </div>
             </div>
 
-            {/* Day initials */}
             <div className="flex items-center justify-between px-2 py-1 select-none">
               {["S", "M", "T", "W", "T", "F", "S"].map((day, idx) => (
                 <span
                   key={idx}
-                  className="flex h-8.5 w-8.5 items-center justify-center rounded-full border border-border bg-secondary/40 text-[10px] font-black text-foreground/80"
+                  className="flex h-8 w-8 items-center justify-center rounded-full border border-border bg-white/40 text-[10px] font-black text-foreground/80 shadow-sm dark:bg-slate-800/40"
                 >
                   {day}
                 </span>
@@ -1366,14 +1540,14 @@ export const LayoutPersonal = () => {
           <div className="mb-6 flex justify-center gap-3">
             <button
               onClick={handleGoToHome}
-              className="h-11 cursor-pointer rounded-full border border-border bg-secondary px-6 text-xs font-bold text-foreground/80 hover:bg-muted"
+              className="h-11 cursor-pointer rounded-full border border-border bg-white/50 px-6 text-xs font-bold text-foreground/80 transition-all hover:bg-white/80 active:scale-95 dark:bg-slate-800/50 dark:hover:bg-slate-800/80"
             >
               Cancel
             </button>
 
             <button
               onClick={handleSaveTimer}
-              className="h-11 cursor-pointer rounded-full bg-primary px-8 text-xs font-bold text-primary-foreground shadow-md hover:opacity-95"
+              className="h-11 cursor-pointer rounded-full bg-primary px-8 text-xs font-bold text-primary-foreground shadow-md transition-all active:scale-95"
             >
               Save
             </button>
@@ -1385,7 +1559,7 @@ export const LayoutPersonal = () => {
     return null
   }, [
     wellbeingSubPage,
-    formattedTotalScreenTime,
+    effectiveFormattedTotalScreenTime,
     donutSegments,
     weeklyUsage,
     selectedDate,
@@ -1399,8 +1573,8 @@ export const LayoutPersonal = () => {
     appStats,
     heatmapData,
     maxWeeklyMins,
-    totalNotifications,
-    totalPickups,
+    effectiveTotalNotifications,
+    effectiveTotalPickups,
     semiCircumference,
     todayRemaining,
     todayProgress,
@@ -1419,10 +1593,11 @@ export const LayoutPersonal = () => {
     handleCategoriesCardClick,
     handleTimersCardClick,
     setActiveAppDetailId,
+    demoEmpty,
   ])
 
   return (
-    <section className="relative flex flex-col gap-6 select-none">
+    <section className="relative flex flex-col gap-5 select-none">
       {subPageContent}
 
       <AnimatePresence>
@@ -1438,13 +1613,13 @@ export const LayoutPersonal = () => {
               animate={{ y: 0 }}
               exit={{ y: 150 }}
               transition={{ type: "spring", damping: 25, stiffness: 220 }}
-              className="flex w-full flex-col gap-4 rounded-t-3xl border-t border-border bg-card p-5 text-foreground shadow-xl"
+              className="flex w-full flex-col gap-4 rounded-t-2xl border-t border-border bg-card p-5 text-foreground shadow-xl"
             >
               <h3 className="text-center font-heading text-sm font-bold tracking-tight">
                 Set screen time goal
               </h3>
 
-              <div className="relative my-1 flex h-[100px] items-center justify-center gap-4 overflow-hidden rounded-2xl border-t border-b border-border/40 bg-secondary/30 py-4">
+              <div className="relative my-1 flex h-[100px] items-center justify-center gap-4 overflow-hidden rounded-xl border-t border-b border-border/40 bg-secondary/35 py-4">
                 <div className="flex h-20 flex-1 scrollbar-none flex-col items-center gap-2 overflow-y-auto">
                   {[2, 3, 4, 5, 6, 7, 8].map((h) => {
                     const isSelected = h === Math.floor(tempGoalMins / 60)
@@ -1479,7 +1654,7 @@ export const LayoutPersonal = () => {
                     setShowGoalModal(false)
                     addToast("Reset goal to default 6h", "info")
                   }}
-                  className="cursor-pointer py-2.5 text-xs font-bold text-rose-500 hover:text-rose-600"
+                  className="hover:text-rose-650 cursor-pointer py-2.5 text-xs font-bold text-rose-500"
                 >
                   Delete
                 </button>
@@ -1499,4 +1674,4 @@ export const LayoutPersonal = () => {
   )
 }
 
-export default LayoutPersonal
+export default LayoutPersonalB

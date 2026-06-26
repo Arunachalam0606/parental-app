@@ -1,18 +1,22 @@
-import { useEffect, useState, useMemo } from 'react'
+import { useEffect, useState, useMemo } from "react"
 
-import { domainSchema } from '@/schemas/wellbeing'
+import { domainSchema } from "@/schemas/wellbeing"
 
-import { useWellbeingStore } from '@/stores/useWellbeingStore'
+import { useWellbeingStore } from "@/stores/useWellbeingStore"
 
-import { useTheme } from '@/components/theme-provider'
+import { useTheme } from "@/components/theme-provider"
 
 export const useWellbeingLogic = () => {
   const { theme, setTheme } = useTheme()
 
   // Zustand State
   const activeTab = useWellbeingStore((state) => state.activeTab)
-  const activeProfileMode = useWellbeingStore((state) => state.activeProfileMode)
-  const activeAppDetailId = useWellbeingStore((state) => state.activeAppDetailId)
+  const activeProfileMode = useWellbeingStore(
+    (state) => state.activeProfileMode
+  )
+  const activeAppDetailId = useWellbeingStore(
+    (state) => state.activeAppDetailId
+  )
   const appStats = useWellbeingStore((state) => state.appStats)
   const categories = useWellbeingStore((state) => state.categories)
   const weeklyUsage = useWellbeingStore((state) => state.weeklyUsage)
@@ -20,7 +24,9 @@ export const useWellbeingLogic = () => {
   const selectedChildId = useWellbeingStore((state) => state.selectedChildId)
   const childAppLimits = useWellbeingStore((state) => state.childAppLimits)
   const childManualLocks = useWellbeingStore((state) => state.childManualLocks)
-  const extraTimeRequests = useWellbeingStore((state) => state.extraTimeRequests)
+  const extraTimeRequests = useWellbeingStore(
+    (state) => state.extraTimeRequests
+  )
   const toasts = useWellbeingStore((state) => state.toasts)
   const blockerStats = useWellbeingStore((state) => state.blockerStats)
   const blockerToggles = useWellbeingStore((state) => state.blockerToggles)
@@ -29,53 +35,101 @@ export const useWellbeingLogic = () => {
   const blacklist = useWellbeingStore((state) => state.blacklist)
   const wellbeingSubPage = useWellbeingStore((state) => state.wellbeingSubPage)
   const selectedDate = useWellbeingStore((state) => state.selectedDate)
-  const dashboardViewMode = useWellbeingStore((state) => state.dashboardViewMode)
+  const dashboardViewMode = useWellbeingStore(
+    (state) => state.dashboardViewMode
+  )
   const goalDetailDate = useWellbeingStore((state) => state.goalDetailDate)
   const screenTimeGoal = useWellbeingStore((state) => state.screenTimeGoal)
   const timerAppId = useWellbeingStore((state) => state.timerAppId)
   const timerDuration = useWellbeingStore((state) => state.timerDuration)
+  const layoutMode = useWellbeingStore((state) => state.layoutMode)
+  const demoEmpty = useWellbeingStore((state) => state.demoEmpty)
 
   // Zustand Actions
   const setActiveTab = useWellbeingStore((state) => state.setActiveTab)
-  const setActiveProfileMode = useWellbeingStore((state) => state.setActiveProfileMode)
-  const setActiveAppDetailId = useWellbeingStore((state) => state.setActiveAppDetailId)
+  const setActiveProfileMode = useWellbeingStore(
+    (state) => state.setActiveProfileMode
+  )
+  const setActiveAppDetailId = useWellbeingStore(
+    (state) => state.setActiveAppDetailId
+  )
   const updateAppLimit = useWellbeingStore((state) => state.updateAppLimit)
-  const togglePersonalManualLock = useWellbeingStore((state) => state.togglePersonalManualLock)
+  const togglePersonalManualLock = useWellbeingStore(
+    (state) => state.togglePersonalManualLock
+  )
   const updateChildLimit = useWellbeingStore((state) => state.updateChildLimit)
   const setChildAppLimit = useWellbeingStore((state) => state.setChildAppLimit)
-  const toggleChildManualLock = useWellbeingStore((state) => state.toggleChildManualLock)
-  const submitExtraTimeRequest = useWellbeingStore((state) => state.submitExtraTimeRequest)
-  const handleExtraTimeRequest = useWellbeingStore((state) => state.handleExtraTimeRequest)
-  const addChildWhitelist = useWellbeingStore((state) => state.addChildWhitelist)
-  const removeChildWhitelist = useWellbeingStore((state) => state.removeChildWhitelist)
-  const addChildBlacklist = useWellbeingStore((state) => state.addChildBlacklist)
-  const removeChildBlacklist = useWellbeingStore((state) => state.removeChildBlacklist)
-  const setSelectedChildId = useWellbeingStore((state) => state.setSelectedChildId)
+  const toggleChildManualLock = useWellbeingStore(
+    (state) => state.toggleChildManualLock
+  )
+  const submitExtraTimeRequest = useWellbeingStore(
+    (state) => state.submitExtraTimeRequest
+  )
+  const handleExtraTimeRequest = useWellbeingStore(
+    (state) => state.handleExtraTimeRequest
+  )
+  const addChildWhitelist = useWellbeingStore(
+    (state) => state.addChildWhitelist
+  )
+  const removeChildWhitelist = useWellbeingStore(
+    (state) => state.removeChildWhitelist
+  )
+  const addChildBlacklist = useWellbeingStore(
+    (state) => state.addChildBlacklist
+  )
+  const removeChildBlacklist = useWellbeingStore(
+    (state) => state.removeChildBlacklist
+  )
+  const setSelectedChildId = useWellbeingStore(
+    (state) => state.setSelectedChildId
+  )
   const addChildProfile = useWellbeingStore((state) => state.addChildProfile)
-  const toggleBlockerOption = useWellbeingStore((state) => state.toggleBlockerOption)
-  const addWhitelistDomain = useWellbeingStore((state) => state.addWhitelistDomain)
-  const removeWhitelistDomain = useWellbeingStore((state) => state.removeWhitelistDomain)
-  const addBlacklistDomain = useWellbeingStore((state) => state.addBlacklistDomain)
-  const removeBlacklistDomain = useWellbeingStore((state) => state.removeBlacklistDomain)
+  const toggleBlockerOption = useWellbeingStore(
+    (state) => state.toggleBlockerOption
+  )
+  const addWhitelistDomain = useWellbeingStore(
+    (state) => state.addWhitelistDomain
+  )
+  const removeWhitelistDomain = useWellbeingStore(
+    (state) => state.removeWhitelistDomain
+  )
+  const addBlacklistDomain = useWellbeingStore(
+    (state) => state.addBlacklistDomain
+  )
+  const removeBlacklistDomain = useWellbeingStore(
+    (state) => state.removeBlacklistDomain
+  )
   const removeToast = useWellbeingStore((state) => state.removeToast)
   const addToast = useWellbeingStore((state) => state.addToast)
   const reset = useWellbeingStore((state) => state.reset)
-  const simulateActivityTick = useWellbeingStore((state) => state.simulateActivityTick)
-  const setWellbeingSubPage = useWellbeingStore((state) => state.setWellbeingSubPage)
+  const simulateActivityTick = useWellbeingStore(
+    (state) => state.simulateActivityTick
+  )
+  const setWellbeingSubPage = useWellbeingStore(
+    (state) => state.setWellbeingSubPage
+  )
   const setSelectedDate = useWellbeingStore((state) => state.setSelectedDate)
-  const setDashboardViewMode = useWellbeingStore((state) => state.setDashboardViewMode)
-  const setGoalDetailDate = useWellbeingStore((state) => state.setGoalDetailDate)
-  const setScreenTimeGoal = useWellbeingStore((state) => state.setScreenTimeGoal)
+  const setDashboardViewMode = useWellbeingStore(
+    (state) => state.setDashboardViewMode
+  )
+  const setGoalDetailDate = useWellbeingStore(
+    (state) => state.setGoalDetailDate
+  )
+  const setScreenTimeGoal = useWellbeingStore(
+    (state) => state.setScreenTimeGoal
+  )
   const setTimerAppId = useWellbeingStore((state) => state.setTimerAppId)
   const setTimerDuration = useWellbeingStore((state) => state.setTimerDuration)
+  const setLayoutMode = useWellbeingStore((state) => state.setLayoutMode)
+  const setDemoEmpty = useWellbeingStore((state) => state.setDemoEmpty)
 
   // Local inputs
-  const defaultDomainInput = ''
+  const defaultDomainInput = ""
   const [domainInput, setDomainInput] = useState(defaultDomainInput)
-  const [domainError, setDomainError] = useState('')
+  const [domainError, setDomainError] = useState("")
 
   const [childDomainInput, setChildDomainInput] = useState(defaultDomainInput)
-  const [childDomainError, setChildDomainError] = useState('')
+  const [childDomainError, setChildDomainError] = useState("")
 
   // 1. Calculated Personal metrics
   const totalScreenTimeMinutes = useMemo(() => {
@@ -109,12 +163,18 @@ export const useWellbeingLogic = () => {
   }, [appStats])
 
   const totalNotifications = useMemo(() => {
-    return appStats.reduce((accumulator, app) => accumulator + app.notifications, 0)
+    return appStats.reduce(
+      (accumulator, app) => accumulator + app.notifications,
+      0
+    )
   }, [appStats])
 
   // Selected child profile helper
   const activeChildProfile = useMemo(() => {
-    return childProfiles.find((child) => child.id === selectedChildId) || childProfiles[0]
+    return (
+      childProfiles.find((child) => child.id === selectedChildId) ||
+      childProfiles[0]
+    )
   }, [childProfiles, selectedChildId])
 
   const childScreenTimeFormatted = useMemo(() => {
@@ -147,15 +207,16 @@ export const useWellbeingLogic = () => {
     if (!baseProfile) return 0
 
     const totalTime = baseProfile.timeSpentToday
-    if (childId === 'alex') {
-      if (appId === 'minecraft') return Math.min(Math.round(totalTime * 0.7), 60)
-      if (appId === 'yt') return Math.min(Math.round(totalTime * 0.25), 35)
+    if (childId === "alex") {
+      if (appId === "minecraft")
+        return Math.min(Math.round(totalTime * 0.7), 60)
+      if (appId === "yt") return Math.min(Math.round(totalTime * 0.25), 35)
       return Math.round(totalTime * 0.05)
     } else {
-      // Emma
-      if (appId === 'tiktok') return Math.min(Math.round(totalTime * 0.45), 75)
-      if (appId === 'yt') return Math.min(Math.round(totalTime * 0.3), 50)
-      if (appId === 'insta') return Math.min(Math.round(totalTime * 0.2), 40)
+      // Lily
+      if (appId === "tiktok") return Math.min(Math.round(totalTime * 0.45), 75)
+      if (appId === "yt") return Math.min(Math.round(totalTime * 0.3), 50)
+      if (appId === "insta") return Math.min(Math.round(totalTime * 0.2), 40)
       return Math.round(totalTime * 0.05)
     }
   }
@@ -185,7 +246,7 @@ export const useWellbeingLogic = () => {
     }
     addWhitelistDomain(validationResult.data.domain)
     setDomainInput(defaultDomainInput)
-    setDomainError('')
+    setDomainError("")
   }
 
   const handleAddBlacklist = () => {
@@ -196,29 +257,33 @@ export const useWellbeingLogic = () => {
     }
     addBlacklistDomain(validationResult.data.domain)
     setDomainInput(defaultDomainInput)
-    setDomainError('')
+    setDomainError("")
   }
 
   const handleAddChildWhitelist = () => {
-    const validationResult = domainSchema.safeParse({ domain: childDomainInput })
+    const validationResult = domainSchema.safeParse({
+      domain: childDomainInput,
+    })
     if (!validationResult.success) {
       setChildDomainError(validationResult.error.issues[0].message)
       return
     }
     addChildWhitelist(selectedChildId, validationResult.data.domain)
     setChildDomainInput(defaultDomainInput)
-    setChildDomainError('')
+    setChildDomainError("")
   }
 
   const handleAddChildBlacklist = () => {
-    const validationResult = domainSchema.safeParse({ domain: childDomainInput })
+    const validationResult = domainSchema.safeParse({
+      domain: childDomainInput,
+    })
     if (!validationResult.success) {
       setChildDomainError(validationResult.error.issues[0].message)
       return
     }
     addChildBlacklist(selectedChildId, validationResult.data.domain)
     setChildDomainInput(defaultDomainInput)
-    setChildDomainError('')
+    setChildDomainError("")
   }
 
   // Ticking effect loop
@@ -233,7 +298,7 @@ export const useWellbeingLogic = () => {
   // Setup theme in root document element
   useEffect(() => {
     const rootElement = document.documentElement
-    rootElement.classList.remove('light', 'dark')
+    rootElement.classList.remove("light", "dark")
     rootElement.classList.add(theme)
   }, [theme])
 
@@ -270,6 +335,8 @@ export const useWellbeingLogic = () => {
     screenTimeGoal,
     timerAppId,
     timerDuration,
+    layoutMode,
+    demoEmpty,
 
     // Calculated fields
     totalScreenTimeMinutes,
@@ -318,11 +385,13 @@ export const useWellbeingLogic = () => {
     setScreenTimeGoal,
     setTimerAppId,
     setTimerDuration,
+    setLayoutMode,
+    setDemoEmpty,
 
     // Custom handlers
     handleAddWhitelist,
     handleAddBlacklist,
     handleAddChildWhitelist,
-    handleAddChildBlacklist
+    handleAddChildBlacklist,
   }
 }

@@ -6,7 +6,7 @@ import { useWellbeingLogic } from "@/hooks/useWellbeingLogic"
 
 import { ArrowLeftIcon, ClockIcon, CheckIcon } from "@phosphor-icons/react"
 
-export const AppDetailReport = () => {
+export const AppDetailReportB = () => {
   const {
     activeAppDetail,
     setActiveAppDetailId,
@@ -15,7 +15,7 @@ export const AppDetailReport = () => {
     addToast,
   } = useWellbeingLogic()
 
-  // Guard/Safeguard: Lock the last non-null app detail state so it stays visible during exit animations
+  // Safeguard: Lock the last non-null app detail state so it stays visible during exit animations
   const [savedAppDetail, setSavedAppDetail] = useState(activeAppDetail)
 
   if (activeAppDetail && activeAppDetail.id !== savedAppDetail?.id) {
@@ -59,16 +59,16 @@ export const AppDetailReport = () => {
     [hourlyMins]
   )
 
-  // Spline points for SVG path
-  const chartWidth = 280
-  const chartHeight = 90
+  // Spline points for SVG path (Adjusted to span full-width beautifully)
+  const chartWidth = 320
+  const chartHeight = 100
 
   const maxVal = useMemo(() => Math.max(...hourlyMins, 15), [hourlyMins])
 
   const splinePoints = useMemo(() => {
     return mockHourlyPoints.map((data, index) => {
       const x = (index * (chartWidth - 24)) / 4 + 12
-      const y = chartHeight - 16 - (data.mins / maxVal) * (chartHeight - 32)
+      const y = chartHeight - 20 - (data.mins / maxVal) * (chartHeight - 36)
       return { x, y }
     })
   }, [mockHourlyPoints, maxVal])
@@ -129,11 +129,11 @@ export const AppDetailReport = () => {
   }
 
   return (
-    <section className="absolute inset-0 z-40 flex scrollbar-none flex-col overflow-y-auto rounded-[38px] bg-background/95 text-foreground backdrop-blur-3xl select-none">
-      <div className="sticky top-0 z-10 flex items-center justify-between bg-background/80 px-6 pt-5 pb-3 backdrop-blur-md">
+    <section className="absolute inset-0 z-40 flex scrollbar-none flex-col overflow-y-auto rounded-[38px] bg-gradient-to-b from-orange-50/95 via-rose-50/95 to-amber-50/95 text-foreground backdrop-blur-3xl select-none dark:from-slate-950/95 dark:via-slate-900/95 dark:to-purple-950/95">
+      <div className="sticky top-0 z-10 flex items-center justify-between px-5 pt-5 pb-3 backdrop-blur-md">
         <button
           onClick={handleBackClick}
-          className="flex h-10 w-10 cursor-pointer items-center justify-center rounded-full border border-border/80 bg-secondary text-foreground transition-colors hover:bg-muted"
+          className="dark:hover:bg-slate-850 flex h-10 w-10 cursor-pointer items-center justify-center rounded-full border border-border/80 bg-white/50 text-foreground shadow-sm transition-colors hover:bg-white active:scale-95 dark:bg-slate-800/50"
         >
           <ArrowLeftIcon size={18} weight="bold" />
         </button>
@@ -145,130 +145,132 @@ export const AppDetailReport = () => {
         <div className="h-10 w-10 shrink-0" />
       </div>
 
-      <div className="flex items-center justify-between border-b border-border/40 px-6 py-4">
+      <div className="mx-5 my-2 flex items-center justify-between rounded-2xl border border-border/40 bg-white/40 p-4.5 shadow-sm dark:bg-slate-900/40">
         <div className="flex items-center gap-4">
-          <div className="flex h-14 w-14 items-center justify-center rounded-2xl border border-border/10 bg-secondary text-primary shadow-inner">
-            <ClockIcon size={28} weight="duotone" />
+          <div className="flex h-12 w-12 items-center justify-center rounded-xl border border-border/10 bg-white text-primary shadow-inner dark:bg-slate-800">
+            <ClockIcon size={24} weight="duotone" />
           </div>
 
           <div>
             <div className="flex items-center gap-2">
-              <h2 className="font-heading text-lg font-bold tracking-tight text-foreground">
+              <h2 className="font-heading text-base font-bold tracking-tight text-foreground">
                 {appToShow.name}
               </h2>
 
               {isLocked && (
-                <span className="flex h-4 items-center gap-0.5 rounded-full bg-rose-100 px-1.5 text-[9px] font-bold tracking-wider text-rose-600 uppercase dark:bg-rose-950/40 dark:text-rose-400">
+                <span className="flex h-4 items-center gap-0.5 rounded-full bg-rose-100 px-1.5 text-[9px] font-bold tracking-wider text-rose-600 uppercase dark:bg-rose-950/45 dark:text-rose-400">
                   <span>Locked</span>
                 </span>
               )}
             </div>
 
-            <span className="text-xs font-semibold tracking-wider text-muted-foreground uppercase">
+            <span className="text-[10px] font-bold tracking-wider text-muted-foreground uppercase">
               {appToShow.category}
             </span>
           </div>
         </div>
       </div>
 
-      <div className="grid grid-cols-2 gap-3.5 px-6 py-5">
-        <div className="flex flex-col rounded-2xl border border-border/80 bg-card/50 p-4 shadow-md shadow-black/2 backdrop-blur-xl">
+      <div className="mx-5 grid grid-cols-2 gap-3.5 py-2">
+        <div className="flex flex-col rounded-2xl border border-border/40 bg-white/40 p-4 shadow-sm backdrop-blur-xl dark:bg-slate-900/40">
           <span className="text-[10px] font-bold tracking-wider text-muted-foreground uppercase">
             Usage Today
           </span>
 
-          <span className="mt-1.5 font-heading text-2xl font-black text-foreground">
+          <span className="mt-1.5 font-heading text-xl font-black text-foreground">
             {Math.floor(appToShow.timeSpent / 60)}h {appToShow.timeSpent % 60}m
           </span>
 
           <span className="mt-1 text-[9px] font-semibold text-muted-foreground/60">
-            Simulated time elapsed
+            Elapsed screen time
           </span>
         </div>
 
-        <div className="flex flex-col rounded-2xl border border-border/80 bg-card/50 p-4 shadow-md shadow-black/2 backdrop-blur-xl">
+        <div className="flex flex-col rounded-2xl border border-border/40 bg-white/40 p-4 shadow-sm backdrop-blur-xl dark:bg-slate-900/40">
           <span className="text-[10px] font-bold tracking-wider text-muted-foreground uppercase">
             App Limit
           </span>
 
-          <span className="mt-1.5 font-heading text-2xl font-black text-foreground">
+          <span className="mt-1.5 font-heading text-xl font-black text-foreground">
             {appToShow.limitMinutes ? `${appToShow.limitMinutes}m` : "None"}
           </span>
 
           <span className="mt-1 text-[9px] font-semibold text-muted-foreground/60">
-            Daily allowance threshold
+            Daily threshold
           </span>
         </div>
 
-        <div className="flex flex-col rounded-2xl border border-border/80 bg-card/50 p-4 shadow-md shadow-black/2 backdrop-blur-xl">
+        <div className="flex flex-col rounded-2xl border border-border/40 bg-white/40 p-4 shadow-sm backdrop-blur-xl dark:bg-slate-900/40">
           <span className="text-[10px] font-bold tracking-wider text-muted-foreground uppercase">
             Unlocks
           </span>
 
-          <span className="mt-1.5 font-heading text-2xl font-black text-foreground">
+          <span className="mt-1.5 font-heading text-xl font-black text-foreground">
             {appToShow.pickups}
           </span>
 
           <span className="mt-1 text-[9px] font-semibold text-muted-foreground/60">
-            Total application sessions
+            Application sessions
           </span>
         </div>
 
-        <div className="flex flex-col rounded-2xl border border-border/80 bg-card/50 p-4 shadow-md shadow-black/2 backdrop-blur-xl">
+        <div className="flex flex-col rounded-2xl border border-border/40 bg-white/40 p-4 shadow-sm backdrop-blur-xl dark:bg-slate-900/40">
           <span className="text-[10px] font-bold tracking-wider text-muted-foreground uppercase">
             Alerts
           </span>
 
-          <span className="mt-1.5 font-heading text-2xl font-black text-foreground">
+          <span className="mt-1.5 font-heading text-xl font-black text-foreground">
             {appToShow.notifications}
           </span>
 
           <span className="mt-1 text-[9px] font-semibold text-muted-foreground/60">
-            Push notifications received
+            Push notifications
           </span>
         </div>
       </div>
 
-      <div className="mx-6 rounded-3xl border border-border/80 bg-card/50 p-5 shadow-lg shadow-black/5 backdrop-blur-xl">
+      <div className="mx-5 my-2.5 rounded-2xl border border-border/40 bg-white/40 p-4.5 shadow-sm backdrop-blur-xl dark:bg-slate-900/40">
         <h3 className="mb-4 font-heading text-xs font-bold tracking-wider text-muted-foreground uppercase">
           Hourly Usage Spline
         </h3>
 
-        <div className="relative h-28 w-full">
+        <div className="relative h-28 w-full select-none">
           <svg
             viewBox={`0 0 ${chartWidth} ${chartHeight}`}
             className="h-full w-full overflow-visible"
           >
             <defs>
               <linearGradient
-                id="detailAreaGrad"
+                id="detailAreaGradB"
                 x1="0%"
                 y1="0%"
                 x2="0%"
                 y2="100%"
               >
                 <stop offset="0%" stopColor="#A78BFA" stopOpacity="0.35" />
+
                 <stop offset="100%" stopColor="#818CF8" stopOpacity="0" />
               </linearGradient>
 
               <linearGradient
-                id="detailStrokeGrad"
+                id="detailStrokeGradB"
                 x1="0%"
                 y1="0%"
                 x2="100%"
                 y2="0%"
               >
                 <stop offset="0%" stopColor="#C084FC" />
+
                 <stop offset="100%" stopColor="#818CF8" />
               </linearGradient>
             </defs>
 
-            <path d={fillPath} fill="url(#detailAreaGrad)" />
+            <path d={fillPath} fill="url(#detailAreaGradB)" />
 
             <path
               d={splinePath}
               fill="none"
-              stroke="url(#detailStrokeGrad)"
+              stroke="url(#detailStrokeGradB)"
               strokeWidth="3"
               strokeLinecap="round"
             />
@@ -288,7 +290,7 @@ export const AppDetailReport = () => {
                   x={pt.x}
                   y={chartHeight - 2}
                   textAnchor="middle"
-                  className="fill-muted-foreground/80 text-[8px] font-bold"
+                  className="fill-muted-foreground/80 text-[8px] font-black"
                 >
                   {mockHourlyPoints[idx].hour}
                 </text>
@@ -298,12 +300,12 @@ export const AppDetailReport = () => {
         </div>
       </div>
 
-      <div className="mx-6 mt-6 mb-6 flex flex-col gap-5 rounded-3xl border border-border/80 bg-card/50 p-5 shadow-lg shadow-black/5 backdrop-blur-xl">
+      <div className="mx-5 mt-2.5 mb-6 flex flex-col gap-4 rounded-2xl border border-border/40 bg-white/40 p-4.5 shadow-sm backdrop-blur-xl dark:bg-slate-900/40">
         <h3 className="font-heading text-xs font-bold tracking-wider text-muted-foreground uppercase">
           Active Rules & Lock overrides
         </h3>
 
-        <div className="flex items-center justify-between rounded-2xl border border-border/40 bg-secondary/35 p-3.5 transition-colors hover:bg-secondary/45">
+        <div className="flex items-center justify-between rounded-xl border border-border/30 bg-white/30 p-3 transition-colors active:bg-secondary/45 dark:bg-slate-800/30">
           <div>
             <span className="text-xs font-semibold text-foreground/90">
               Manual Force Block
@@ -316,7 +318,7 @@ export const AppDetailReport = () => {
 
           <button
             onClick={handleToggleManualLock}
-            className={`relative flex h-6 w-11 cursor-pointer items-center rounded-full transition-colors ${
+            className={`relative flex h-6 w-11 cursor-pointer items-center rounded-full border-none transition-colors outline-none ${
               appToShow.isLockedManually
                 ? "justify-end bg-rose-500"
                 : "justify-start bg-muted"
@@ -329,7 +331,7 @@ export const AppDetailReport = () => {
           </button>
         </div>
 
-        <div className="flex flex-col gap-4 rounded-2xl border border-border/40 bg-secondary/35 p-4">
+        <div className="flex flex-col gap-4 rounded-xl border border-border/30 bg-white/30 p-3.5 dark:bg-slate-800/30">
           <div className="flex items-center justify-between text-xs font-semibold">
             <span>Set App Limit</span>
 
@@ -355,7 +357,7 @@ export const AppDetailReport = () => {
                   updateAppLimit(appToShow.id, 0)
                   addToast(`Removed limit for ${appToShow.name}`, "info")
                 }}
-                className="h-8.5 rounded-xl border border-rose-100 bg-rose-50 px-3 text-[11px] font-bold text-rose-600 transition-colors dark:border-rose-900/30 dark:bg-rose-950/20 dark:text-rose-400"
+                className="h-8.5 rounded-xl border border-rose-100 bg-rose-50 px-3 text-[11px] font-bold text-rose-600 transition-colors active:scale-95 dark:border-rose-900/30 dark:bg-rose-950/20 dark:text-rose-400"
               >
                 Disable Limit
               </button>
@@ -363,7 +365,7 @@ export const AppDetailReport = () => {
 
             <button
               onClick={handleSave}
-              className="flex h-8.5 items-center gap-1.5 rounded-xl bg-primary px-4 text-[11px] font-bold text-primary-foreground shadow-sm transition-colors hover:opacity-90"
+              className="flex h-8.5 items-center gap-1.5 rounded-xl bg-primary px-4 text-[11px] font-bold text-primary-foreground shadow-sm transition-colors active:scale-95"
             >
               <CheckIcon size={12} weight="bold" />
 
@@ -376,4 +378,4 @@ export const AppDetailReport = () => {
   )
 }
 
-export default AppDetailReport
+export default AppDetailReportB
