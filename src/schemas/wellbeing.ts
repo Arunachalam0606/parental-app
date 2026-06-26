@@ -20,6 +20,13 @@ export const childProfileSchema = z.object({
   isActive: z.boolean()
 })
 
+export const extraTimeRequestSchema = z.object({
+  childId: z.string().min(1),
+  appId: z.string().min(1),
+  minutesRequested: z.number().min(15).max(120)
+})
+
 export type LimitData = z.infer<typeof limitSchema>
 export type DomainData = z.infer<typeof domainSchema>
 export type ChildProfileData = z.infer<typeof childProfileSchema>
+export type ExtraTimeRequestData = z.infer<typeof extraTimeRequestSchema>

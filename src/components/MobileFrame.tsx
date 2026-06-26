@@ -31,7 +31,10 @@ export const MobileFrame = (props: MobileFrameProps) => {
   }, [])
 
   return (
-    <section className="relative aspect-[9/19.2] h-[88vh] min-h-[640px] max-h-[850px] w-auto rounded-[48px] border-[12px] border-slate-900 bg-background text-foreground shadow-[0_25px_60px_-15px_rgba(0,0,0,0.3)] outline-none ring-4 ring-slate-900/10 transition-all duration-300 dark:border-slate-800 dark:ring-white/5">
+    <section 
+      className="relative h-[88vh] min-h-[640px] max-h-[850px] w-[365px] sm:w-[380px] md:w-[390px] max-w-full rounded-[48px] border-[12px] border-slate-900 bg-background/90 backdrop-blur-2xl text-foreground shadow-[0_25px_60px_-15px_rgba(0,0,0,0.3)] outline-none ring-4 ring-slate-900/10 transition-all duration-300 dark:border-slate-800 dark:ring-white/5"
+      style={{ aspectRatio: '9/19.5' }}
+    >
       <div className="absolute top-0 left-1/2 z-50 h-7 w-32 -translate-x-1/2 rounded-b-2xl bg-slate-900 dark:bg-slate-800">
         <div className="mx-auto mt-1.5 h-1.5 w-1.5 rounded-full bg-slate-800 dark:bg-slate-700" />
       </div>

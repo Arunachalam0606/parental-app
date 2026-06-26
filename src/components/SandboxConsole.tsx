@@ -4,66 +4,50 @@ import {
   GearIcon, 
   UserIcon, 
   UsersIcon, 
-  BookIcon, 
-  ShieldCheckIcon,
-  MoonIcon,
+  MoonIcon, 
   SunIcon,
   FlameIcon,
-  HeartIcon
+  HeartIcon,
+  HourglassIcon,
+  ArrowsClockwiseIcon
 } from '@phosphor-icons/react'
-
-import type { LayoutType } from '@/stores/useWellbeingStore'
 
 export const SandboxConsole = () => {
   const {
-    activeLayout,
+    activeProfileMode,
+    setActiveProfileMode,
     activeTheme,
-    setActiveLayout,
     setActiveTheme,
     simulateActivityTick,
-    updateChildLimit
+    submitExtraTimeRequest,
+    reset,
+    addToast
   } = useWellbeingLogic()
 
   const handleToggleTheme = () => {
     setActiveTheme(activeTheme === 'light' ? 'dark' : 'light')
   }
 
-  const handleInjectLimitHit = () => {
-    // Exceed limit for Emma
-    updateChildLimit('emma', 'weekday', 30)
-    // Tigger update cycles
-    simulateActivityTick()
+  const handleToggleProfileMode = (mode: 'parent' | 'child') => {
+    setActiveProfileMode(mode)
+    addToast(mode === 'child' ? "Entered Child Mode" : "Returned to Parent Mode", 'info')
   }
 
-  const layoutOptions: { id: LayoutType; name: string; icon: React.ReactNode; desc: string }[] = [
-    { 
-      id: 'personal', 
-      name: 'Layout A: Personal Wellbeing', 
-      icon: <UserIcon size={18} weight="duotone" />, 
-      desc: 'Self wellbeing stats & limits adjustment' 
-    },
-    { 
-      id: 'parental', 
-      name: 'Layout B: Parental Portal', 
-      icon: <UsersIcon size={18} weight="duotone" />, 
-      desc: 'Manage schedules & filters for child profiles' 
-    },
-    { 
-      id: 'child', 
-      name: 'Layout C: Child Dashboard', 
-      icon: <BookIcon size={18} weight="duotone" />, 
-      desc: 'Simplified dials with secure lockout screens' 
-    },
-    { 
-      id: 'adblocker', 
-      name: 'Layout D: Adblocker Shield', 
-      icon: <ShieldCheckIcon size={18} weight="duotone" />, 
-      desc: 'Privacy counters & domain Whitelisting' 
-    }
-  ]
+  const handleInjectRequest = () => {
+    // Generate a random extra time request from Alex or Emma
+    const isAlex = Math.random() > 0.5
+    const childId = isAlex ? 'alex' : 'emma'
+    const childName = isAlex ? 'Alex' : 'Emma'
+    const appId = isAlex ? 'minecraft' : 'tiktok'
+    const appName = isAlex ? 'Minecraft' : 'TikTok'
+    const minutes = Math.random() > 0.5 ? 15 : 30
+
+    submitExtraTimeRequest(childId, appId, minutes)
+    addToast(`Injected pending request: ${childName} asks +${minutes}m for ${appName}`, 'info')
+  }
 
   return (
-    <section className="w-full max-w-sm rounded-[32px] bg-card/65 p-6 border border-border shadow-[0_20px_40px_rgba(0,0,0,0.05)] backdrop-blur-2xl flex flex-col gap-6 select-none">
+    <section className="w-full max-w-sm rounded-[32px] bg-card/65 p-6 border border-border shadow-[0_20px_40px_rgba(0,0,0,0.05)] backdrop-blur-2xl flex flex-col gap-6 select-none text-foreground">
       {/* Header */}
       <div className="flex items-center gap-3">
         <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-primary/10 text-primary border border-primary/10">
@@ -72,40 +56,34 @@ export const SandboxConsole = () => {
 
         <div>
           <h2 className="font-heading text-lg font-bold tracking-tight">POC Control Panel</h2>
-          <p className="text-[11px] font-medium text-muted-foreground mt-0.5">Simulate layout structures & filters</p>
+          <p className="text-[10px] font-semibold text-muted-foreground mt-0.5">Simulate layouts, limits, and requests</p>
         </div>
       </div>
 
-      {/* Layout Selection list */}
+      {/* Profile mode switches */}
       <div className="flex flex-col gap-2.5">
-        <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider pl-1">Select Active Layout</span>
+        <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider pl-1">Active User Role</span>
 
-        <div className="flex flex-col gap-2">
-          {layoutOptions.map((option) => {
-            const isSelected = activeLayout === option.id
-            return (
-              <button
-                key={option.id}
-                onClick={() => setActiveLayout(option.id)}
-                className={`w-full p-3.5 rounded-2xl text-left border transition-all cursor-pointer flex items-start gap-3.5 ${
-                  isSelected 
-                    ? 'bg-primary/5 border-primary/30 text-foreground' 
-                    : 'bg-secondary/40 border-border/40 text-muted-foreground hover:text-foreground hover:bg-secondary/60'
-                }`}
-              >
-                <div className={`mt-0.5 p-2 rounded-xl border ${
-                  isSelected ? 'bg-primary text-primary-foreground border-primary/20' : 'bg-card text-muted-foreground border-border/60'
-                }`}>
-                  {option.icon}
-                </div>
-
-                <div className="min-w-0">
-                  <span className="text-xs font-bold block text-foreground">{option.name}</span>
-                  <span className="text-[10px] font-medium text-muted-foreground block mt-0.5">{option.desc}</span>
-                </div>
-              </button>
-            )
-          })}
+        <div className="grid grid-cols-2 gap-2 p-1 rounded-2xl bg-secondary/55">
+          <button
+            onClick={() => handleToggleProfileMode('parent')}
+            className={`py-3 rounded-xl text-xs font-bold transition-all cursor-pointer flex items-center justify-center gap-1.5 ${
+              activeProfileMode === 'parent' ? 'bg-primary text-primary-foreground shadow-sm' : 'text-muted-foreground hover:text-foreground'
+            }`}
+          >
+            <UsersIcon size={16} />
+            <span>Parent Mode</span>
+          </button>
+          
+          <button
+            onClick={() => handleToggleProfileMode('child')}
+            className={`py-3 rounded-xl text-xs font-bold transition-all cursor-pointer flex items-center justify-center gap-1.5 ${
+              activeProfileMode === 'child' ? 'bg-primary text-primary-foreground shadow-sm' : 'text-muted-foreground hover:text-foreground'
+            }`}
+          >
+            <UserIcon size={16} />
+            <span>Child Mode</span>
+          </button>
         </div>
       </div>
 
@@ -127,8 +105,8 @@ export const SandboxConsole = () => {
               )}
             </div>
             <div>
-              <span className="block text-foreground">Toggle Theme</span>
-              <span className="text-[9px] text-muted-foreground font-medium block mt-0.5">Press 'd' as shortcut</span>
+              <span className="block text-foreground text-xs font-bold">Toggle Theme</span>
+              <span className="text-[9px] text-muted-foreground font-semibold block mt-0.5">Press 'd' as shortcut</span>
             </div>
           </button>
 
@@ -141,30 +119,42 @@ export const SandboxConsole = () => {
               <FlameIcon size={16} weight="duotone" className="text-amber-500" />
             </div>
             <div>
-              <span className="block text-foreground">Inject Activity</span>
-              <span className="text-[9px] text-muted-foreground font-medium block mt-0.5">Simulate active ticking</span>
+              <span className="block text-foreground text-xs font-bold">Tick Activity</span>
+              <span className="text-[9px] text-muted-foreground font-semibold block mt-0.5">Simulate active ticking</span>
             </div>
           </button>
         </div>
       </div>
 
-      {/* Trigger Event Injector */}
+      {/* Injections & Overrides */}
       <div className="flex flex-col gap-2.5">
         <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider pl-1">Event Injections</span>
 
-        <button
-          onClick={handleInjectLimitHit}
-          className="w-full py-3 px-4 rounded-2xl bg-rose-500/5 hover:bg-rose-500/10 border border-rose-500/20 text-rose-600 dark:text-rose-400 text-xs font-bold cursor-pointer transition-colors flex items-center justify-center gap-2"
-        >
-          <ShieldCheckIcon size={18} weight="fill" />
-          <span>Trigger Child App Lock Limit</span>
-        </button>
+        <div className="flex flex-col gap-2">
+          {/* Inject request */}
+          <button
+            onClick={handleInjectRequest}
+            className="w-full py-3.5 px-4 rounded-2xl bg-amber-500/5 hover:bg-amber-500/10 border border-amber-500/20 text-amber-700 dark:text-amber-400 text-xs font-bold cursor-pointer transition-colors flex items-center justify-center gap-2"
+          >
+            <HourglassIcon size={18} weight="fill" />
+            <span>Inject Extra Time Request</span>
+          </button>
+
+          {/* Reset button */}
+          <button
+            onClick={reset}
+            className="w-full py-3.5 px-4 rounded-2xl bg-secondary/40 hover:bg-secondary/60 border border-border/60 text-muted-foreground hover:text-foreground text-xs font-bold cursor-pointer transition-colors flex items-center justify-center gap-2"
+          >
+            <ArrowsClockwiseIcon size={18} weight="bold" />
+            <span>Reset Demo Data</span>
+          </button>
+        </div>
       </div>
 
       {/* Design notes */}
       <div className="border-t border-border/60 pt-4 flex gap-2 text-[10px] font-medium text-muted-foreground">
         <HeartIcon size={14} className="text-rose-500 shrink-0 mt-0.5" />
-        <span>Designed for Aura Wellbeing. Supports fluid spring animations, custom radial charts, and automatic dark modes.</span>
+        <span>Designed for Aura Wellbeing. Supports dynamic child locks, extra time approvals, and custom spline reports.</span>
       </div>
     </section>
   )

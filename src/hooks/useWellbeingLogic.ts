@@ -9,22 +9,36 @@ import { useTheme } from '@/components/theme-provider'
 export const useWellbeingLogic = () => {
   const { theme, setTheme } = useTheme()
 
-  const activeLayout = useWellbeingStore((state) => state.activeLayout)
+  // Zustand State
+  const activeTab = useWellbeingStore((state) => state.activeTab)
+  const activeProfileMode = useWellbeingStore((state) => state.activeProfileMode)
+  const activeAppDetailId = useWellbeingStore((state) => state.activeAppDetailId)
   const appStats = useWellbeingStore((state) => state.appStats)
   const categories = useWellbeingStore((state) => state.categories)
   const weeklyUsage = useWellbeingStore((state) => state.weeklyUsage)
   const childProfiles = useWellbeingStore((state) => state.childProfiles)
   const selectedChildId = useWellbeingStore((state) => state.selectedChildId)
+  const childAppLimits = useWellbeingStore((state) => state.childAppLimits)
+  const childManualLocks = useWellbeingStore((state) => state.childManualLocks)
+  const extraTimeRequests = useWellbeingStore((state) => state.extraTimeRequests)
+  const toasts = useWellbeingStore((state) => state.toasts)
   const blockerStats = useWellbeingStore((state) => state.blockerStats)
   const blockerToggles = useWellbeingStore((state) => state.blockerToggles)
   const blockerHistory = useWellbeingStore((state) => state.blockerHistory)
   const whitelist = useWellbeingStore((state) => state.whitelist)
   const blacklist = useWellbeingStore((state) => state.blacklist)
 
-  const setActiveLayout = useWellbeingStore((state) => state.setActiveLayout)
+  // Zustand Actions
+  const setActiveTab = useWellbeingStore((state) => state.setActiveTab)
+  const setActiveProfileMode = useWellbeingStore((state) => state.setActiveProfileMode)
+  const setActiveAppDetailId = useWellbeingStore((state) => state.setActiveAppDetailId)
   const updateAppLimit = useWellbeingStore((state) => state.updateAppLimit)
-  const toggleAppLock = useWellbeingStore((state) => state.toggleAppLock)
+  const togglePersonalManualLock = useWellbeingStore((state) => state.togglePersonalManualLock)
   const updateChildLimit = useWellbeingStore((state) => state.updateChildLimit)
+  const setChildAppLimit = useWellbeingStore((state) => state.setChildAppLimit)
+  const toggleChildManualLock = useWellbeingStore((state) => state.toggleChildManualLock)
+  const submitExtraTimeRequest = useWellbeingStore((state) => state.submitExtraTimeRequest)
+  const handleExtraTimeRequest = useWellbeingStore((state) => state.handleExtraTimeRequest)
   const addChildWhitelist = useWellbeingStore((state) => state.addChildWhitelist)
   const removeChildWhitelist = useWellbeingStore((state) => state.removeChildWhitelist)
   const addChildBlacklist = useWellbeingStore((state) => state.addChildBlacklist)
@@ -35,9 +49,12 @@ export const useWellbeingLogic = () => {
   const removeWhitelistDomain = useWellbeingStore((state) => state.removeWhitelistDomain)
   const addBlacklistDomain = useWellbeingStore((state) => state.addBlacklistDomain)
   const removeBlacklistDomain = useWellbeingStore((state) => state.removeBlacklistDomain)
+  const removeToast = useWellbeingStore((state) => state.removeToast)
+  const addToast = useWellbeingStore((state) => state.addToast)
+  const reset = useWellbeingStore((state) => state.reset)
   const simulateActivityTick = useWellbeingStore((state) => state.simulateActivityTick)
 
-  // Local state for Whitelist/Blacklist text inputs
+  // Local inputs
   const defaultDomainInput = ''
   const [domainInput, setDomainInput] = useState(defaultDomainInput)
   const [domainError, setDomainError] = useState('')
@@ -45,7 +62,7 @@ export const useWellbeingLogic = () => {
   const [childDomainInput, setChildDomainInput] = useState(defaultDomainInput)
   const [childDomainError, setChildDomainError] = useState('')
 
-  // 1. Calculate Personal Wellbeing metrics
+  // 1. Calculated Personal metrics
   const totalScreenTimeMinutes = useMemo(() => {
     return appStats.reduce((accumulator, app) => accumulator + app.timeSpent, 0)
   }, [appStats])
@@ -59,42 +76,32 @@ export const useWellbeingLogic = () => {
     return `${hours}h ${minutes}m`
   }, [totalScreenTimeMinutes])
 
-  // Top 3 Apps
   const topApps = useMemo(() => {
-    return [...appStats]
-      .sort((a, b) => b.timeSpent - a.timeSpent)
-      .slice(0, 3)
+    return [...appStats].sort((a, b) => b.timeSpent - a.timeSpent).slice(0, 3)
   }, [appStats])
 
-  // Top 3 Categories
   const topCategories = useMemo(() => {
-    return [...categories]
-      .sort((a, b) => b.timeSpent - a.timeSpent)
-      .slice(0, 3)
+    return [...categories].sort((a, b) => b.timeSpent - a.timeSpent).slice(0, 3)
   }, [categories])
 
-  // Weekly "Bests" (Day with the lowest usage)
   const weeklyBestDay = useMemo(() => {
     if (weeklyUsage.length === 0) return null
     return [...weeklyUsage].sort((a, b) => a.minutes - b.minutes)[0]
   }, [weeklyUsage])
 
-  // Total pick ups count
   const totalPickups = useMemo(() => {
     return appStats.reduce((accumulator, app) => accumulator + app.pickups, 0)
   }, [appStats])
 
-  // Total notification count
   const totalNotifications = useMemo(() => {
     return appStats.reduce((accumulator, app) => accumulator + app.notifications, 0)
   }, [appStats])
 
-  // Active child profile data helper
+  // Selected child profile helper
   const activeChildProfile = useMemo(() => {
     return childProfiles.find((child) => child.id === selectedChildId) || childProfiles[0]
   }, [childProfiles, selectedChildId])
 
-  // Total Child Screen Time Formatted
   const childScreenTimeFormatted = useMemo(() => {
     const timeSpent = activeChildProfile.timeSpentToday
     const hours = Math.floor(timeSpent / 60)
@@ -105,7 +112,6 @@ export const useWellbeingLogic = () => {
     return `${hours}h ${minutes}m`
   }, [activeChildProfile])
 
-  // Adblocker saved data calculation details
   const formattedDataSaved = useMemo(() => {
     if (blockerStats.dataSavedMb < 1024) {
       return `${blockerStats.dataSavedMb.toFixed(1)} MB`
@@ -113,7 +119,49 @@ export const useWellbeingLogic = () => {
     return `${(blockerStats.dataSavedMb / 1024).toFixed(2)} GB`
   }, [blockerStats])
 
-  // Handlers with input validation
+  // Get active App details
+  const activeAppDetail = useMemo(() => {
+    if (!activeAppDetailId) return null
+    return appStats.find((app) => app.id === activeAppDetailId) || null
+  }, [appStats, activeAppDetailId])
+
+  // Helper: Child app specific time spent simulation
+  const getChildAppTimeSpent = (childId: string, appId: string): number => {
+    // Distribute time spent proportionally based on profile total time spent
+    const baseProfile = childProfiles.find((c) => c.id === childId)
+    if (!baseProfile) return 0
+
+    const totalTime = baseProfile.timeSpentToday
+    if (childId === 'alex') {
+      if (appId === 'minecraft') return Math.min(Math.round(totalTime * 0.7), 60)
+      if (appId === 'yt') return Math.min(Math.round(totalTime * 0.25), 35)
+      return Math.round(totalTime * 0.05)
+    } else {
+      // Emma
+      if (appId === 'tiktok') return Math.min(Math.round(totalTime * 0.45), 75)
+      if (appId === 'yt') return Math.min(Math.round(totalTime * 0.3), 50)
+      if (appId === 'insta') return Math.min(Math.round(totalTime * 0.2), 40)
+      return Math.round(totalTime * 0.05)
+    }
+  }
+
+  // Helper: check if a child's app is locked
+  const isChildAppLocked = (childId: string, appId: string): boolean => {
+    // 1. Check parent manual override
+    const locks = childManualLocks[childId] || []
+    if (locks.includes(appId)) return true
+
+    // 2. Check daily app limit duration
+    const limits = childAppLimits[childId] || {}
+    if (limits[appId] !== undefined) {
+      const timeSpent = getChildAppTimeSpent(childId, appId)
+      if (timeSpent >= limits[appId]) return true
+    }
+
+    return false
+  }
+
+  // Handlers
   const handleAddWhitelist = () => {
     const validationResult = domainSchema.safeParse({ domain: domainInput })
     if (!validationResult.success) {
@@ -158,24 +206,37 @@ export const useWellbeingLogic = () => {
     setChildDomainError('')
   }
 
-  // Periodic background simulation loop
+  // Ticking effect loop
   useEffect(() => {
     const interval = setInterval(() => {
       simulateActivityTick()
-    }, 4500) // Ticks every 4.5 seconds
+    }, 4500)
 
     return () => clearInterval(interval)
   }, [simulateActivityTick])
 
+  // Setup theme in root document element
+  useEffect(() => {
+    const rootElement = document.documentElement
+    rootElement.classList.remove('light', 'dark')
+    rootElement.classList.add(theme)
+  }, [theme])
+
   return {
     // State
-    activeLayout,
+    activeTab,
+    activeProfileMode,
+    activeAppDetailId,
     activeTheme: theme,
     appStats,
     categories,
     weeklyUsage,
     childProfiles,
     selectedChildId,
+    childAppLimits,
+    childManualLocks,
+    extraTimeRequests,
+    toasts,
     blockerStats,
     blockerToggles,
     blockerHistory,
@@ -186,6 +247,7 @@ export const useWellbeingLogic = () => {
     childDomainInput,
     childDomainError,
     activeChildProfile,
+    activeAppDetail,
 
     // Calculated fields
     totalScreenTimeMinutes,
@@ -198,20 +260,33 @@ export const useWellbeingLogic = () => {
     childScreenTimeFormatted,
     formattedDataSaved,
 
+    // Helper functions
+    getChildAppTimeSpent,
+    isChildAppLocked,
+
     // Setters / Actions
     setDomainInput,
     setChildDomainInput,
-    setActiveLayout,
+    setActiveTab,
+    setActiveProfileMode,
+    setActiveAppDetailId,
     setActiveTheme: setTheme,
     updateAppLimit,
-    toggleAppLock,
+    togglePersonalManualLock,
     updateChildLimit,
+    setChildAppLimit,
+    toggleChildManualLock,
+    submitExtraTimeRequest,
+    handleExtraTimeRequest,
     removeChildWhitelist,
     removeChildBlacklist,
     setSelectedChildId,
     toggleBlockerOption,
     removeWhitelistDomain,
     removeBlacklistDomain,
+    removeToast,
+    addToast,
+    reset,
     simulateActivityTick,
 
     // Custom handlers
