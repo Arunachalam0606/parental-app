@@ -5,15 +5,12 @@ import { motion, AnimatePresence } from 'framer-motion'
 import { useWellbeingLogic } from '@/hooks/useWellbeingLogic'
 
 import { 
-  ClockIcon, 
   CaretRightIcon,
   VideoIcon,
   ChatCircleIcon,
   BookOpenIcon,
-  HourglassIcon,
   ArrowLeftIcon,
-  ChartBarIcon,
-  DotsThreeVerticalIcon
+  ChartBarIcon
 } from '@phosphor-icons/react'
 
 export const LayoutPersonal = () => {
@@ -40,22 +37,30 @@ export const LayoutPersonal = () => {
     setActiveAppDetailId
   } = useWellbeingLogic()
 
-  // Local state for wheel pickers and toggle states
-  const [selectedTimerApp, setSelectedTimerApp] = useState<string>('insta')
-  const [wheelHours, setWheelHours] = useState<number>(2)
-  const [wheelMinutes, setWheelMinutes] = useState<number>(15)
-  const [showGoalModal, setShowGoalModal] = useState<boolean>(false)
-  const [tempGoalMins, setTempGoalMins] = useState<number>(360)
+  const defaultTimerApp = 'insta'
+  const defaultWheelHours = 2
+  const defaultWheelMinutes = 15
+  const defaultShowGoalModal = false
+  const defaultTempGoalMins = 360
+  const defaultEmptyState = false
+  const defaultConsoleTab = 'apps'
 
-  // Navigate handlers (Logic Isolation: no inline arrow functions in return)
+  const [selectedTimerApp, setSelectedTimerApp] = useState<string>(defaultTimerApp)
+  const [wheelHours, setWheelHours] = useState<number>(defaultWheelHours)
+  const [wheelMinutes, setWheelMinutes] = useState<number>(defaultWheelMinutes)
+  const [showGoalModal, setShowGoalModal] = useState<boolean>(defaultShowGoalModal)
+  const [tempGoalMins, setTempGoalMins] = useState<number>(defaultTempGoalMins)
+  const [showEmptyState, setShowEmptyState] = useState<boolean>(defaultEmptyState)
+  const [consoleTab, setConsoleTab] = useState<'apps' | 'categories' | 'timers'>(defaultConsoleTab)
+
   const handleGoToDashboard = useCallback(() => setWellbeingSubPage('dashboard'), [setWellbeingSubPage])
   const handleGoToGoal = useCallback(() => setWellbeingSubPage('goal'), [setWellbeingSubPage])
   const handleGoToReport = useCallback(() => setWellbeingSubPage('report'), [setWellbeingSubPage])
   const handleGoToHome = useCallback(() => setWellbeingSubPage('home'), [setWellbeingSubPage])
-  
+
   const handleOpenSetTimer = useCallback((appId: string) => {
     setSelectedTimerApp(appId)
-    const app = appStats.find(a => a.id === appId)
+    const app = appStats.find((a) => a.id === appId)
     const currentLimit = app?.limitMinutes || 60
     setWheelHours(Math.floor(currentLimit / 60))
     setWheelMinutes(currentLimit % 60)
@@ -74,12 +79,12 @@ export const LayoutPersonal = () => {
   const handleSaveGoal = useCallback(() => {
     setScreenTimeGoal(tempGoalMins)
     setShowGoalModal(false)
-    addToast(`Screen time goal updated to ${Math.floor(tempGoalMins / 60)}h`, 'success')
+    addToast(`Goal updated to ${Math.floor(tempGoalMins / 60)}h`, 'success')
   }, [tempGoalMins, setScreenTimeGoal, addToast])
 
   const handleSaveTimer = useCallback(() => {
     const totalMins = wheelHours * 60 + wheelMinutes
-    const targetApp = appStats.find(a => a.id === selectedTimerApp)
+    const targetApp = appStats.find((a) => a.id === selectedTimerApp)
     if (targetApp) {
       updateAppLimit(selectedTimerApp, totalMins)
       addToast(`Set timer for ${targetApp.name} to ${wheelHours}h ${wheelMinutes}m`, 'success')
@@ -87,51 +92,40 @@ export const LayoutPersonal = () => {
     setWellbeingSubPage('home')
   }, [wheelHours, wheelMinutes, appStats, selectedTimerApp, updateAppLimit, addToast, setWellbeingSubPage])
 
-  const handleCategoriesCardClick = useCallback(() => {
-    setWellbeingSubPage('dashboard')
-    setDashboardViewMode('categories')
-  }, [setWellbeingSubPage, setDashboardViewMode])
+  const handleToggleEmptyState = useCallback(() => {
+    setShowEmptyState((prev) => !prev)
+  }, [])
 
-  const handleTimersCardClick = useCallback((e: React.MouseEvent) => {
-    if ((e.target as HTMLElement).closest('button')) return
-    setWellbeingSubPage('set-timer')
-  }, [setWellbeingSubPage])
+  const handleConsoleTabSelect = useCallback((tab: 'apps' | 'categories' | 'timers') => () => {
+    setConsoleTab(tab)
+  }, [])
 
-  // Ring parameters
-  const ringCenter = 45
-  const donutRadius = 30
-  const circumference = 2 * Math.PI * donutRadius
+  const handleAppLimitSelect = useCallback((appId: string) => () => {
+    handleOpenSetTimer(appId)
+  }, [handleOpenSetTimer])
 
-  // Compute donut segment values
-  const donutSegments = useMemo(() => {
-    const sortedApps = [...appStats].sort((a, b) => b.timeSpent - a.timeSpent).slice(0, 3)
-    
-    return sortedApps.map((app, index) => {
-      const share = app.timeSpent / (totalScreenTimeMinutes || 1)
-      const strokeDasharray = `${circumference * share} ${circumference}`
-      
-      const previousShareSum = sortedApps
-        .slice(0, index)
-        .reduce((sum, prevApp) => sum + (prevApp.timeSpent / (totalScreenTimeMinutes || 1)), 0)
-      
-      const rotation = (previousShareSum * 360) - 90
+  const handleSelectDay = useCallback((day: string) => () => {
+    setSelectedDate(day)
+    addToast(`Viewing data for June ${day}`, 'info')
+  }, [setSelectedDate, addToast])
 
-      const colors = [
-        'stroke-[oklch(0.65_0.15_250)]', 
-        'stroke-[oklch(0.68_0.14_170)]', 
-        'stroke-[oklch(0.66_0.15_300)]'  
-      ]
+  const handleSelectGoalDate = useCallback((date: string) => () => {
+    setGoalDetailDate(date)
+  }, [setGoalDetailDate])
 
-      return {
-        id: app.id,
-        name: app.name,
-        time: app.timeSpent,
-        dashArray: strokeDasharray,
-        rotation,
-        colorClass: colors[index % colors.length]
-      }
-    })
-  }, [appStats, totalScreenTimeMinutes, circumference])
+  const handleAppDetailSelect = useCallback((appId: string) => () => {
+    setActiveAppDetailId(appId)
+  }, [setActiveAppDetailId])
+
+  const handleGoalHourSelect = useCallback((h: number) => () => {
+    setTempGoalMins(h * 60)
+  }, [])
+
+  const handleResetGoalToDefault = useCallback(() => {
+    setScreenTimeGoal(360)
+    setShowGoalModal(false)
+    addToast("Reset goal to default 6h", "info")
+  }, [setScreenTimeGoal, addToast])
 
   // Monthly Calendar Date Rings for June (May 30 to June 26)
   const calendarDays = useMemo(() => {
@@ -159,18 +153,12 @@ export const LayoutPersonal = () => {
     return daysArr
   }, [])
 
-  // Semicircular progress calculations
-  const semiRadius = 50
-  const semiCircumference = Math.PI * semiRadius
-  const todayRemaining = Math.max(360 - totalScreenTimeMinutes, 0)
-  const todayProgress = Math.min(totalScreenTimeMinutes / 360, 1)
-
   // Selected date details for Goal History screen
   const activeGoalDetail = useMemo(() => {
     if (!goalDetailDate) {
       return { date: '26', used: totalScreenTimeMinutes, goal: screenTimeGoal, status: totalScreenTimeMinutes > screenTimeGoal ? 'over' : 'used' }
     }
-    const match = calendarDays.find(d => d.date === goalDetailDate && d.month === 'June')
+    const match = calendarDays.find((d) => d.date === goalDetailDate && d.month === 'June')
     if (match) return match
     return { date: '26', used: totalScreenTimeMinutes, goal: screenTimeGoal, status: totalScreenTimeMinutes > screenTimeGoal ? 'over' : 'used' }
   }, [goalDetailDate, calendarDays, totalScreenTimeMinutes, screenTimeGoal])
@@ -199,883 +187,769 @@ export const LayoutPersonal = () => {
   // Weekly Report stacked bar details
   const maxWeeklyMins = Math.max(...weeklyUsage.map((d) => d.minutes), 360)
 
-  // Day click logic
-  const handleSelectDay = useCallback((day: string) => {
-    setSelectedDate(day)
-    addToast(`Viewing data for June ${day}`, 'info')
-  }, [setSelectedDate, addToast])
-
-  // Goal Date click logic
-  const handleSelectGoalDate = useCallback((date: string) => {
-    setGoalDetailDate(date)
-  }, [setGoalDetailDate])
-
   // --- Sub-Page JSX Structure computation (Logic Isolation) ---
   const subPageContent = useMemo(() => {
     // 1. WELLBEING HOME PAGE VIEW
     if (wellbeingSubPage === 'home') {
+      const summaryTime = showEmptyState ? '0m' : formattedTotalScreenTime
+      const summaryPickups = showEmptyState ? 0 : totalPickups
+      const summaryNotifications = showEmptyState ? 0 : totalNotifications
+
+      const splinePoints = showEmptyState 
+        ? [
+            { x: 20, y: 80 },
+            { x: 75, y: 80 },
+            { x: 130, y: 80 },
+            { x: 185, y: 80 },
+            { x: 240, y: 80 }
+          ]
+        : [
+            { x: 20, y: 70 },
+            { x: 75, y: 40 },
+            { x: 130, y: 75 },
+            { x: 185, y: 15 },
+            { x: 240, y: 65 }
+          ]
+
+      let splinePath = `M ${splinePoints[0].x} ${splinePoints[0].y}`
+      for (let i = 0; i < splinePoints.length - 1; i++) {
+        const p0 = splinePoints[i]
+        const p1 = splinePoints[i + 1]
+        const cpX1 = p0.x + (p1.x - p0.x) / 2
+        const cpY1 = p0.y
+        const cpX2 = p0.x + (p1.x - p0.x) / 2
+        const cpY2 = p1.y
+        splinePath += ` C ${cpX1} ${cpY1}, ${cpX2} ${cpY2}, ${p1.x} ${p1.y}`
+      }
+
+      const activeAppsList = showEmptyState ? [] : [
+        { id: 'insta', name: 'Instagram', timeSpent: 110, limitMinutes: 120, category: 'Social' },
+        { id: 'tiktok', name: 'TikTok', timeSpent: 85, limitMinutes: 90, category: 'Social' },
+        { id: 'yt', name: 'YouTube', timeSpent: 70, limitMinutes: 120, category: 'Entertainment' },
+        { id: 'notion', name: 'Notion', timeSpent: 45, limitMinutes: 60, category: 'Productivity' }
+      ]
+
+      const activeCategoriesList = showEmptyState ? [] : [
+        { name: 'Social', timeSpent: 195, icon: ChatCircleIcon, color: 'text-purple-600 dark:text-purple-400 bg-purple-500/10' },
+        { name: 'Entertainment', timeSpent: 70, icon: VideoIcon, color: 'text-indigo-600 dark:text-indigo-400 bg-indigo-500/10' },
+        { name: 'Productive', timeSpent: 45, icon: BookOpenIcon, color: 'text-blue-600 dark:text-blue-400 bg-blue-500/10' }
+      ]
+
+      const activeTimersList = showEmptyState ? [] : [
+        { id: 'insta', name: 'Instagram', limitMinutes: 120, timeSpent: 110 },
+        { id: 'social', name: 'Social Apps', limitMinutes: 195, timeSpent: 195 }
+      ]
+
+      const currentGoalLimit = 360
+      const goalRemaining = showEmptyState ? 360 : Math.max(currentGoalLimit - totalScreenTimeMinutes, 0)
+      const goalHoursRemaining = Math.floor(goalRemaining / 60)
+      const goalMinutesRemaining = goalRemaining % 60
+      const goalUsagePercent = showEmptyState ? 0 : Math.min(totalScreenTimeMinutes / currentGoalLimit, 1)
+
+      const splineWidget = (
+        <div className="rounded-2xl bg-card p-4.5 border border-border flex flex-col gap-2 shadow-sm">
+          <div className="flex justify-between items-center">
+            <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider">
+              Today's Usage Trend
+            </span>
+
+            <span className="text-[9px] font-bold text-primary bg-primary/10 px-2 py-0.5 rounded-full">
+              {showEmptyState ? 'No Log' : 'Peak: 6 PM'}
+            </span>
+          </div>
+
+          <div className="h-[90px] w-full flex items-end justify-center mt-1">
+            <svg className="h-[90px] w-full" viewBox="0 0 260 90" preserveAspectRatio="none">
+              <defs>
+                <linearGradient id="parentSplineGrad" x1="0%" y1="0%" x2="0%" y2="100%">
+                  <stop offset="0%" stopColor="var(--primary)" stopOpacity="0.2" />
+                  <stop offset="100%" stopColor="var(--primary)" stopOpacity="0" />
+                </linearGradient>
+              </defs>
+
+              <line x1="20" y1="10" x2="240" y2="10" stroke="currentColor" className="text-muted/10" strokeDasharray="3 3" />
+              <line x1="20" y1="45" x2="240" y2="45" stroke="currentColor" className="text-muted/10" strokeDasharray="3 3" />
+              <line x1="20" y1="80" x2="240" y2="80" stroke="currentColor" className="text-muted/10" strokeDasharray="3 3" />
+
+              <path d={splinePath} fill="none" stroke="var(--primary)" strokeWidth="2.5" strokeLinecap="round" />
+              
+              <path d={`${splinePath} L 240 80 L 20 80 Z`} fill="url(#parentSplineGrad)" />
+
+              {splinePoints.map((pt, idx) => (
+                <circle
+                  key={idx}
+                  cx={pt.x}
+                  cy={pt.y}
+                  r="3.5"
+                  fill="var(--background)"
+                  stroke="var(--primary)"
+                  strokeWidth="2"
+                />
+              ))}
+            </svg>
+          </div>
+
+          <div className="flex justify-between text-[8px] font-bold text-muted-foreground mt-0.5 px-2">
+            <span>9 AM</span>
+            <span>12 PM</span>
+            <span>3 PM</span>
+            <span>6 PM</span>
+            <span>9 PM</span>
+          </div>
+        </div>
+      )
+
+      const consoleTabsElement = (
+        <div className="flex bg-secondary/60 rounded-xl p-1 w-full">
+          <button
+            onClick={handleConsoleTabSelect('apps')}
+            className={`flex-1 py-1.5 rounded-lg text-[10px] font-bold text-center cursor-pointer transition-colors active:scale-95 ${
+              consoleTab === 'apps' ? 'bg-card text-foreground shadow-sm' : 'text-muted-foreground'
+            }`}
+          >
+            <span>Apps</span>
+          </button>
+
+          <button
+            onClick={handleConsoleTabSelect('categories')}
+            className={`flex-1 py-1.5 rounded-lg text-[10px] font-bold text-center cursor-pointer transition-colors active:scale-95 ${
+              consoleTab === 'categories' ? 'bg-card text-foreground shadow-sm' : 'text-muted-foreground'
+            }`}
+          >
+            <span>Categories</span>
+          </button>
+
+          <button
+            onClick={handleConsoleTabSelect('timers')}
+            className={`flex-1 py-1.5 rounded-lg text-[10px] font-bold text-center cursor-pointer transition-colors active:scale-95 ${
+              consoleTab === 'timers' ? 'bg-card text-foreground shadow-sm' : 'text-muted-foreground'
+            }`}
+          >
+            <span>Timers</span>
+          </button>
+        </div>
+      )
+
+      const appsListContent = activeAppsList.length === 0 ? (
+        <div className="flex flex-col items-center justify-center p-6 text-center rounded-xl bg-secondary/20 border border-dashed border-border/80">
+          <span className="text-xl mb-1">📱</span>
+
+          <span className="text-xs font-bold text-foreground/80 block">No active app tracking</span>
+
+          <p className="text-[9px] text-muted-foreground mt-0.5 max-w-[200px]">
+            Start using your device or unlock locked apps to view tracking telemetry.
+          </p>
+        </div>
+      ) : (
+        <div className="flex flex-col gap-2.5">
+          {activeAppsList.map((app) => {
+            const limit = app.limitMinutes || 60
+            const time = app.timeSpent
+            const usePercentage = Math.min(time / limit, 1)
+            const isLocked = time >= limit
+
+            return (
+              <div 
+                key={app.id}
+                onClick={handleAppLimitSelect(app.id)}
+                className="p-3 rounded-xl bg-secondary/35 border border-border/30 flex flex-col justify-between cursor-pointer active:scale-[0.98] transition-transform"
+              >
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <span className="text-xs font-bold text-foreground/80">{app.name}</span>
+                    <span className="text-[9px] text-muted-foreground">({app.category})</span>
+                  </div>
+
+                  <div className="flex items-center">
+                    <span className="text-[9px] font-bold text-foreground/75">
+                      {time}m / {limit}m
+                    </span>
+                  </div>
+                </div>
+
+                <div className="flex gap-1 mt-2 w-full">
+                  {[0, 1, 2, 3].map((step) => {
+                    const isFilled = usePercentage > (step / 4)
+                    return (
+                      <div 
+                        key={step} 
+                        className={`h-1.5 flex-1 rounded-sm transition-colors duration-200 ${
+                          isFilled 
+                            ? (isLocked ? 'bg-rose-500' : 'bg-primary') 
+                            : 'bg-secondary/70'
+                        }`}
+                      />
+                    )
+                  })}
+                </div>
+              </div>
+            )
+          })}
+        </div>
+      )
+
+      const categoriesListContent = activeCategoriesList.length === 0 ? (
+        <div className="flex flex-col items-center justify-center p-6 text-center rounded-xl bg-secondary/20 border border-dashed border-border/80">
+          <span className="text-xl mb-1">📁</span>
+
+          <span className="text-xs font-bold text-foreground/80 block">No categories logged</span>
+
+          <p className="text-[9px] text-muted-foreground mt-0.5 max-w-[200px]">
+            Usage data categorized by App Store ratings will compile here.
+          </p>
+        </div>
+      ) : (
+        <div className="grid grid-cols-3 gap-2">
+          {activeCategoriesList.map((cat) => {
+            const Icon = cat.icon
+            const hours = Math.floor(cat.timeSpent / 60)
+            const minutes = cat.timeSpent % 60
+
+            return (
+              <div 
+                key={cat.name}
+                className="rounded-xl bg-secondary/35 p-3 border border-border/30 flex flex-col justify-between min-h-[85px] cursor-pointer active:scale-[0.98] transition-transform"
+              >
+                <div className={`h-7 w-7 rounded-lg ${cat.color} flex items-center justify-center`}>
+                  <Icon size={14} weight="fill" />
+                </div>
+
+                <div>
+                  <span className="text-[9px] font-bold text-muted-foreground block">{cat.name}</span>
+                  <span className="text-[10px] font-extrabold text-foreground/90 mt-0.5 block">
+                    {hours > 0 ? `${hours}h ` : ''}{minutes}m
+                  </span>
+                </div>
+              </div>
+            )
+          })}
+        </div>
+      )
+
+      const timersListContent = activeTimersList.length === 0 ? (
+        <div className="flex flex-col items-center justify-center p-6 text-center rounded-xl bg-secondary/20 border border-dashed border-border/80">
+          <span className="text-xl mb-1">⏱️</span>
+
+          <span className="text-xs font-bold text-foreground/80 block">No timers configured</span>
+
+          <p className="text-[9px] text-muted-foreground mt-0.5 max-w-[200px]">
+            Create daily lockout thresholds to self-manage time budgets.
+          </p>
+        </div>
+      ) : (
+        <div className="flex flex-col gap-2.5">
+          {activeTimersList.map((timer) => (
+            <div 
+              key={timer.id}
+              className="flex items-center justify-between p-3 rounded-xl bg-secondary/35 border border-border/30 cursor-pointer active:scale-[0.98] transition-transform"
+            >
+              <div>
+                <span className="text-xs font-bold text-foreground/80 block">{timer.name}</span>
+                <span className="text-[9px] text-muted-foreground">Threshold: {timer.limitMinutes}m</span>
+              </div>
+
+              <button 
+                onClick={handleAppLimitSelect(timer.id)}
+                className="h-7 px-3 rounded-lg bg-secondary border border-border text-[9px] font-bold text-foreground/80 cursor-pointer active:scale-95"
+              >
+                Adjust
+              </button>
+            </div>
+          ))}
+        </div>
+      )
+
+      const consoleWidget = (
+        <div className="rounded-2xl bg-card p-4 border border-border flex flex-col gap-3.5 shadow-sm">
+          {consoleTabsElement}
+
+          {consoleTab === 'apps' && appsListContent}
+
+          {consoleTab === 'categories' && categoriesListContent}
+
+          {consoleTab === 'timers' && timersListContent}
+        </div>
+      )
+
+      const goalWidget = (
+        <div className="rounded-2xl bg-card p-4 border border-border flex flex-col gap-3.5 shadow-sm">
+          <div className="flex justify-between items-center">
+            <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider">
+              Daily screen time goal
+            </span>
+
+            <button 
+              onClick={handleGoToGoal}
+              className="text-[9px] font-bold text-primary active:underline cursor-pointer"
+            >
+              Target: 6h
+            </button>
+          </div>
+
+          <div className="flex items-center justify-between gap-4">
+            <div className="flex-1">
+              <span className="font-heading text-2xl font-black text-foreground/90 block">
+                {goalHoursRemaining}h {goalMinutesRemaining}m
+              </span>
+
+              <span className="text-[8px] font-bold text-muted-foreground uppercase tracking-wider mt-0.5 block">
+                Time Remaining
+              </span>
+            </div>
+
+            <div className="flex gap-1 w-24 shrink-0 justify-end">
+              {[0, 1, 2, 3].map((step) => {
+                const isFilled = goalUsagePercent > (step / 4)
+                return (
+                  <div 
+                    key={step} 
+                    className={`h-4.5 w-1.5 rounded-sm transition-colors duration-200 ${
+                      isFilled ? 'bg-primary' : 'bg-secondary/80'
+                    }`}
+                  />
+                )
+              })}
+            </div>
+          </div>
+        </div>
+      )
+
+      const parentalShortcutWidget = (
+        <div 
+          onClick={() => setActiveTab('parental')}
+          className="rounded-2xl bg-card p-4 border border-border flex flex-col gap-1 shadow-sm cursor-pointer active:scale-[0.98] transition-transform"
+        >
+          <span className="text-[9px] font-bold text-muted-foreground uppercase tracking-wider">
+            Content restrictions
+          </span>
+
+          <p className="text-[10.5px] font-semibold text-foreground/80 leading-relaxed">
+            Manage school schedules, approved whitelist links, and toggle adblocks remotely.
+          </p>
+        </div>
+      )
+
       return (
-        <div className="flex flex-col gap-5">
-          {/* Header */}
+        <div className="flex flex-col gap-4">
           <div className="flex items-center justify-between px-1">
             <div>
-              <span className="text-[10px] font-bold tracking-wider text-muted-foreground uppercase">Samsung App Care</span>
+              <span className="text-[10px] font-bold tracking-wider text-muted-foreground uppercase">
+                Aura Portal
+              </span>
 
-              <h1 className="font-heading text-2xl font-bold tracking-tight text-foreground/90 mt-0.5">Digital Wellbeing</h1>
+              <h1 className="font-heading text-xl font-bold tracking-tight text-foreground/90 mt-0.5">
+                Dashboard
+              </h1>
             </div>
 
-            <div className="flex gap-2">
+            <div className="flex items-center gap-2">
+              <button
+                onClick={handleToggleEmptyState}
+                className="px-2.5 py-1.5 text-[9px] font-bold rounded-lg bg-secondary/80 border border-border text-foreground/75 cursor-pointer uppercase tracking-wider active:scale-95"
+              >
+                <span>{showEmptyState ? 'Demo: Pinned' : 'Demo: Empty'}</span>
+              </button>
+
               <button 
                 onClick={handleGoToReport}
-                className="h-10 w-10 flex items-center justify-center rounded-full bg-secondary/80 text-foreground border border-border/40 hover:bg-secondary cursor-pointer transition-colors"
+                className="h-9 w-9 flex items-center justify-center rounded-lg bg-secondary border border-border/80 text-foreground cursor-pointer active:scale-95"
                 title="Weekly report"
               >
-                <ChartBarIcon size={20} weight="regular" />
-              </button>
-
-              <button className="h-10 w-10 flex items-center justify-center rounded-full bg-secondary/80 text-foreground border border-border/40 hover:bg-secondary cursor-pointer transition-colors">
-                <DotsThreeVerticalIcon size={20} weight="bold" />
+                <ChartBarIcon size={16} weight="regular" />
               </button>
             </div>
           </div>
 
-          {/* Habit Banner Card */}
-          <div className="relative overflow-hidden rounded-3xl bg-slate-950 dark:bg-slate-900/60 p-6 border border-white/5 shadow-md flex flex-col justify-between min-h-[120px]">
-            <div className="absolute top-0 right-0 h-32 w-32 rounded-full bg-blue-500/20 blur-[50px]" />
+          <div className="grid grid-cols-3 gap-2.5">
+            <div className="rounded-xl bg-card p-3 border border-border flex flex-col justify-between shadow-sm min-h-[75px]">
+              <span className="text-[8px] font-bold text-muted-foreground uppercase tracking-wider block">
+                Screen Time
+              </span>
 
-            <div className="absolute bottom-0 left-0 h-24 w-24 rounded-full bg-purple-500/10 blur-[40px]" />
-
-            <div className="relative z-10 flex flex-col gap-1.5 max-w-[80%]">
-              <h2 className="font-heading text-lg font-bold tracking-tight text-sky-400 dark:text-sky-300">Build healthy digital habits</h2>
-
-              <p className="text-[11px] font-medium leading-relaxed text-slate-300/80">You'll get feedback and help to keep you on track.</p>
-            </div>
-          </div>
-
-          {/* Screen time today Card */}
-          <div 
-            onClick={handleGoToDashboard}
-            className="flex flex-col gap-4 rounded-3xl bg-card/60 p-5 border border-border backdrop-blur-xl shadow-[0_8px_32px_-4px_rgba(0,0,0,0.02)] hover:bg-card/85 cursor-pointer transition-all duration-200"
-          >
-            <div>
-              <span className="text-[9.5px] font-bold text-muted-foreground uppercase tracking-wider">Screen time today</span>
-
-              <div className="flex items-baseline justify-between mt-1">
-                <h3 className="font-heading text-3xl font-black text-foreground/90">{formattedTotalScreenTime}</h3>
-
-                <CaretRightIcon size={14} className="text-muted-foreground/60" />
-              </div>
-            </div>
-
-            <div className="flex items-center justify-between gap-2.5">
-              {/* App list on left */}
-              <div className="flex flex-col gap-2">
-                {donutSegments.map((seg, idx) => (
-                  <div key={seg.id} className="flex items-center gap-2">
-                    <span className={`h-2.5 w-2.5 rounded-full ${
-                      idx === 0 ? 'bg-[oklch(0.65_0.15_250)]' : idx === 1 ? 'bg-[oklch(0.68_0.14_170)]' : 'bg-[oklch(0.66_0.15_300)]'
-                    }`} />
-                    
-                    <span className="text-xs font-bold text-foreground/80">{seg.name}</span>
-
-                    <span className="text-[10px] text-muted-foreground font-medium">{Math.floor(seg.time / 60)}h {seg.time % 60}m</span>
-                  </div>
-                ))}
-              </div>
-
-              {/* Seg Donut Chart */}
-              <div className="relative h-[90px] w-[90px]">
-                <svg className="h-full w-full">
-                  <circle cx={ringCenter} cy={ringCenter} r={donutRadius} fill="none" stroke="currentColor" className="text-muted/10 dark:text-muted/5" strokeWidth="8" />
-
-                  {donutSegments.map((seg) => (
-                    <circle
-                      key={seg.id}
-                      cx={ringCenter}
-                      cy={ringCenter}
-                      r={donutRadius}
-                      fill="none"
-                      className={seg.colorClass}
-                      strokeWidth="8"
-                      strokeDasharray={seg.dashArray}
-                      strokeLinecap="round"
-                      style={{
-                        transformOrigin: '45px 45px',
-                        transform: `rotate(${seg.rotation}deg)`
-                      }}
-                    />
-                  ))}
-                </svg>
-              </div>
-            </div>
-          </div>
-
-          {/* Most used app categories Grid */}
-          <div 
-            onClick={handleCategoriesCardClick}
-            className="flex flex-col gap-2.5 cursor-pointer hover:bg-card/85 hover:scale-[1.015] hover:shadow-sm p-4 rounded-3xl bg-card/60 border border-border backdrop-blur-xl transition-all duration-300"
-          >
-            <div className="flex items-center justify-between pr-1">
-              <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider pl-1">Most used app categories</span>
-              <CaretRightIcon size={12} className="text-muted-foreground/60" />
-            </div>
-
-            <div className="flex gap-3 overflow-x-auto pb-1 scrollbar-none">
-              <div className="flex gap-3 px-1">
-                <div className="h-[105px] w-[110px] shrink-0 rounded-2xl bg-secondary/40 p-4 border border-border/80 flex flex-col justify-between">
-                  <div className="h-8 w-8 rounded-full bg-purple-500/10 border border-purple-500/20 flex items-center justify-center text-purple-600 dark:text-purple-400">
-                    <ChatCircleIcon size={18} weight="fill" />
-                  </div>
-                  <div>
-                    <span className="text-[10px] font-bold text-muted-foreground">Social</span>
-                    <h4 className="text-xs font-extrabold text-foreground/90 mt-0.5">1 h 28 m</h4>
-                  </div>
-                </div>
-
-                <div className="h-[105px] w-[110px] shrink-0 rounded-2xl bg-secondary/40 p-4 border border-border/80 flex flex-col justify-between">
-                  <div className="h-8 w-8 rounded-full bg-amber-500/10 border border-amber-500/20 flex items-center justify-center text-amber-600 dark:text-amber-400">
-                    <VideoIcon size={18} weight="fill" />
-                  </div>
-                  <div>
-                    <span className="text-[10px] font-bold text-muted-foreground">Shopping</span>
-                    <h4 className="text-xs font-extrabold text-foreground/90 mt-0.5">36 m</h4>
-                  </div>
-                </div>
-
-                <div className="h-[105px] w-[110px] shrink-0 rounded-2xl bg-secondary/40 p-4 border border-border/80 flex flex-col justify-between">
-                  <div className="h-8 w-8 rounded-full bg-blue-500/10 border border-blue-500/20 flex items-center justify-center text-blue-600 dark:text-blue-400">
-                    <BookOpenIcon size={18} weight="fill" />
-                  </div>
-                  <div>
-                    <span className="text-[10px] font-bold text-muted-foreground">Productive</span>
-                    <h4 className="text-xs font-extrabold text-foreground/90 mt-0.5">9 m</h4>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          {/* App timers Section */}
-          <div 
-            onClick={handleTimersCardClick}
-            className="rounded-3xl bg-card/60 p-5 border border-border backdrop-blur-xl flex flex-col gap-4 shadow-sm cursor-pointer hover:bg-card/85 hover:scale-[1.015] hover:shadow-sm transition-all duration-300"
-          >
-            <div className="flex items-center justify-between">
               <div>
-                <h3 className="font-heading text-sm font-semibold tracking-tight text-foreground/90">App timers</h3>
-                <p className="text-[10.5px] font-medium leading-relaxed text-muted-foreground mt-1">If you're using certain apps more than you'd like, set a timer.</p>
+                <span className="font-heading text-base font-extrabold text-foreground/90 block">
+                  {summaryTime}
+                </span>
+
+                <span className="text-[7.5px] font-semibold text-muted-foreground">
+                  {showEmptyState ? 'No activity' : 'Limit: 6h'}
+                </span>
               </div>
-              <CaretRightIcon size={12} className="text-muted-foreground/60 shrink-0" />
             </div>
 
-            <div className="flex flex-col gap-3">
-              <div className="flex items-center justify-between p-3.5 rounded-2xl bg-secondary/30 border border-border/40 hover:bg-secondary/50">
-                <div className="flex items-center gap-3">
-                  <div className="h-9 w-9 rounded-xl bg-gradient-to-tr from-purple-500 to-pink-500 text-white flex items-center justify-center font-bold shadow-sm">
-                    I
-                  </div>
-                  <div>
-                    <span className="text-xs font-bold text-foreground/80">Instagram</span>
-                    <p className="text-[10px] font-medium text-muted-foreground mt-0.5">Used: 1h 50m</p>
-                  </div>
-                </div>
+            <div className="rounded-xl bg-card p-3 border border-border flex flex-col justify-between shadow-sm min-h-[75px]">
+              <span className="text-[8px] font-bold text-muted-foreground uppercase tracking-wider block">
+                Device Pickups
+              </span>
 
-                <button 
-                  onClick={() => handleOpenSetTimer('insta')}
-                  className="h-8 px-3.5 rounded-xl bg-secondary hover:bg-muted border border-border text-[10px] font-bold text-foreground/80 cursor-pointer"
-                >
-                  Set timer
-                </button>
+              <div>
+                <span className="font-heading text-base font-extrabold text-foreground/90 block">
+                  {summaryPickups}
+                </span>
+
+                <span className="text-[7.5px] font-semibold text-muted-foreground">
+                  {showEmptyState ? 'No pickups' : '32 avg/day'}
+                </span>
               </div>
+            </div>
 
-              <div className="flex items-center justify-between p-3.5 rounded-2xl bg-secondary/30 border border-border/40 hover:bg-secondary/50">
-                <div className="flex items-center gap-3">
-                  <div className="h-9 w-9 rounded-xl bg-gradient-to-tr from-sky-400 to-indigo-500 text-white flex items-center justify-center font-bold shadow-sm">
-                    S
-                  </div>
-                  <div>
-                    <span className="text-xs font-bold text-foreground/80">Social Apps</span>
-                    <p className="text-[10px] font-medium text-muted-foreground mt-0.5">Used: 3h 15m</p>
-                  </div>
-                </div>
+            <div className="rounded-xl bg-card p-3 border border-border flex flex-col justify-between shadow-sm min-h-[75px]">
+              <span className="text-[8px] font-bold text-muted-foreground uppercase tracking-wider block">
+                Alerts Recd
+              </span>
 
-                <button 
-                  onClick={() => handleOpenSetTimer('social')}
-                  className="h-8 px-3.5 rounded-xl bg-secondary hover:bg-muted border border-border text-[10px] font-bold text-foreground/80 cursor-pointer"
-                >
-                  Set timer
-                </button>
+              <div>
+                <span className="font-heading text-base font-extrabold text-foreground/90 block">
+                  {summaryNotifications}
+                </span>
+
+                <span className="text-[7.5px] font-semibold text-muted-foreground">
+                  {showEmptyState ? 'No alerts' : '85 received'}
+                </span>
               </div>
             </div>
           </div>
 
-          {/* Screen time goal Card */}
-          <div 
-            onClick={handleGoToGoal}
-            className="rounded-3xl bg-card/60 p-5 border border-border backdrop-blur-xl flex flex-col gap-4 shadow-sm cursor-pointer hover:bg-card/85 hover:scale-[1.015] hover:shadow-sm transition-all duration-300"
-          >
-            <div className="flex justify-between items-center">
-              <h3 className="font-heading text-sm font-semibold tracking-tight text-foreground/90">Screen time goal</h3>
-              <CaretRightIcon size={12} className="text-muted-foreground/60" />
-            </div>
+          {splineWidget}
 
-            <div className="flex flex-col items-center gap-4">
-              <div className="relative h-[90px] w-[180px] overflow-hidden flex items-end justify-center">
-                <svg className="absolute top-0 left-0 h-[100px] w-[180px]">
-                  <defs>
-                    <linearGradient id="usageRingGrad" x1="0%" y1="0%" x2="100%" y2="0%">
-                      <stop offset="0%" stopColor="oklch(0.68 0.14 170)" />
-                      <stop offset="100%" stopColor="oklch(0.56 0.12 250)" />
-                    </linearGradient>
-                  </defs>
+          {consoleWidget}
 
-                  <path
-                    d="M 20 80 A 70 70 0 0 1 160 80"
-                    fill="none"
-                    stroke="currentColor"
-                    className="text-muted/10 dark:text-muted/5"
-                    strokeWidth="10"
-                    strokeLinecap="round"
-                  />
+          {goalWidget}
 
-                  <path
-                    d="M 20 80 A 70 70 0 0 1 160 80"
-                    fill="none"
-                    stroke="url(#usageRingGrad)"
-                    strokeWidth="10"
-                    strokeLinecap="round"
-                    strokeDasharray={semiCircumference}
-                    strokeDashoffset={semiCircumference * (1 - todayProgress)}
-                  />
-                </svg>
-                
-                <div className="flex flex-col items-center text-center pb-2">
-                  <span className="font-heading text-2xl font-black text-foreground/95">
-                    {Math.floor(todayRemaining / 60)}h {todayRemaining % 60}m
-                  </span>
-                  
-                  <span className="text-[9px] font-bold text-muted-foreground uppercase tracking-wider mt-0.5">Remaining</span>
-                </div>
-              </div>
-
-              <button 
-                onClick={handleGoToGoal}
-                className="h-9.5 px-4 rounded-xl bg-secondary hover:bg-muted border border-border text-xs font-bold text-foreground/80 cursor-pointer transition-colors"
-              >
-                Goal 6 h
-              </button>
-            </div>
-          </div>
-
-          {/* Parental controls Shortcut Card */}
-          <div 
-            onClick={() => setActiveTab('parental')}
-            className="rounded-3xl bg-card/60 p-5 border border-border backdrop-blur-xl shadow-sm cursor-pointer hover:bg-card/85 hover:scale-[1.015] hover:shadow-sm transition-all duration-300 flex flex-col gap-2"
-          >
-            <span className="text-[9px] font-bold text-muted-foreground uppercase tracking-wider">Parental controls</span>
-
-            <p className="text-[11px] font-semibold text-foreground/80 leading-relaxed">Add content restrictions and set other limits to help your child balance screen time.</p>
-          </div>
-
+          {parentalShortcutWidget}
         </div>
       )
     }
 
     // 2. DASHBOARD DETAILED BAR CHARTS VIEW
     if (wellbeingSubPage === 'dashboard') {
-      const toggleViewMode = () => setDashboardViewMode(dashboardViewMode === 'apps' ? 'categories' : 'apps')
-      
+      const displayTotalScreenTime = showEmptyState ? '0m' : formattedTotalScreenTime
+      const displayPickups = showEmptyState ? 0 : totalPickups
+      const displayNotifications = showEmptyState ? 0 : totalNotifications
+      const displayAppStats = showEmptyState ? [] : appStats
+
       return (
-        <div className="flex flex-col gap-5">
-          {/* Header */}
+        <div className="flex flex-col gap-4">
           <div className="flex items-center justify-between px-1">
             <button 
               onClick={handleGoToHome}
-              className="h-10 w-10 flex items-center justify-center rounded-full bg-secondary/80 text-foreground border border-border/40 hover:bg-secondary cursor-pointer transition-colors"
+              className="h-9 w-9 flex items-center justify-center rounded-lg bg-secondary border border-border/80 text-foreground cursor-pointer active:scale-95"
             >
               <ArrowLeftIcon size={16} weight="bold" />
             </button>
-
-            <h2 className="font-heading text-lg font-bold tracking-tight text-foreground/95">Dashboard</h2>
-
-            <button 
-              onClick={toggleViewMode}
-              className="text-xs font-extrabold text-primary hover:underline cursor-pointer"
-            >
-              {dashboardViewMode === 'apps' ? 'Show categories' : 'Show apps'}
-            </button>
+            <h1 className="font-heading text-sm font-bold text-foreground/90">Detailed Report</h1>
+            <div className="h-9 w-9" />
           </div>
 
-          {/* Date calendar row */}
-          <div className="flex justify-between items-center px-2 py-1.5 rounded-2xl bg-secondary/40 border border-border/40 select-none">
-            {['21', '22', '23', '24', '25', '26', '27'].map((day) => {
-              const isSelected = selectedDate === day
-              return (
-                <button
-                  key={day}
-                  onClick={() => handleSelectDay(day)}
-                  className={`h-9 w-9 rounded-full text-xs font-extrabold flex items-center justify-center transition-all cursor-pointer ${
-                    isSelected ? 'bg-primary text-primary-foreground shadow-sm scale-105' : 'text-muted-foreground hover:text-foreground'
-                  }`}
-                >
-                  {day}
-                </button>
-              )
-            })}
+          <div className="rounded-2xl bg-card p-4.5 border border-border backdrop-blur-xl flex flex-col gap-3.5 shadow-sm">
+            <div className="flex items-center justify-between border-b border-border/40 pb-2.5">
+              <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider">Screen time</span>
+              <span className="text-xs font-black text-foreground">{displayTotalScreenTime}</span>
+            </div>
+
+            <div className="flex justify-between items-center text-[10.5px] font-bold text-muted-foreground/80 px-0.5">
+              <div className="flex items-center gap-1">
+                <span>Pickups:</span>
+                <span className="text-foreground">{displayPickups}</span>
+              </div>
+              <div className="flex items-center gap-1">
+                <span>Notifications:</span>
+                <span className="text-foreground">{displayNotifications}</span>
+              </div>
+            </div>
           </div>
 
-          {/* Card 1: Stacked screen time bar chart */}
-          <div className="rounded-3xl bg-card/60 p-5 border border-border backdrop-blur-xl flex flex-col gap-4 shadow-sm">
-            <div>
-              <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider">Total screen time</span>
+          <div className="rounded-2xl bg-card p-4.5 border border-border backdrop-blur-xl flex flex-col gap-4 shadow-sm">
+            <span className="font-heading text-xs font-bold text-muted-foreground uppercase tracking-wider">App breakdown</span>
 
-              <h3 className="font-heading text-2xl font-black text-foreground/90 mt-1">{formattedTotalScreenTime}</h3>
-            </div>
-
-            {/* Bars container */}
-            <div className="h-32 w-full flex items-end justify-between px-2 pt-4">
-              {weeklyUsage.map((val) => {
-                const dayHeight = (val.minutes / maxWeeklyMins) * 100
-                const isSelected = selectedDate === '26' && val.day === 'Fri' 
-                
-                return (
-                  <div key={val.day} className="flex flex-col items-center gap-1.5 flex-1">
-                    <div className="w-4.5 bg-secondary dark:bg-slate-800 rounded-full h-24 flex items-end overflow-hidden">
-                      <div 
-                        className={`w-full rounded-full transition-all duration-300 ${
-                          isSelected ? 'bg-[oklch(0.56_0.12_250)]' : 'bg-primary/45'
-                        }`} 
-                        style={{ height: `${dayHeight}%` }}
-                      />
-                    </div>
-
-                    <span className={`text-[10px] font-bold ${
-                      isSelected ? 'text-primary font-black bg-primary/10 px-1.5 py-0.5 rounded-full' : 'text-muted-foreground'
-                    }`}>
-                      {val.day.charAt(0)}
-                    </span>
-                  </div>
-                )
-              })}
-            </div>
-
-            {/* Interactive app list */}
-            <div className="border-t border-border/40 pt-3.5 flex flex-col gap-2.5">
-              {appStats.map((app, idx) => {
-                const colors = [
-                  'bg-[oklch(0.65_0.15_250)]',
-                  'bg-[oklch(0.68_0.14_170)]',
-                  'bg-[oklch(0.66_0.15_300)]',
-                  'bg-[oklch(0.60_0.10_120)]',
-                  'bg-[oklch(0.70_0.08_80)]',
-                  'bg-[oklch(0.62_0.12_25)]',
-                  'bg-[oklch(0.64_0.10_145)]'
-                ]
-                const color = colors[idx % colors.length]
-                const sharePercent = Math.round((app.timeSpent / (totalScreenTimeMinutes || 1)) * 100)
-                
-                return (
-                  <button
-                    key={app.id}
-                    onClick={() => setActiveAppDetailId(app.id)}
-                    className="flex items-center justify-between py-1.5 px-2 rounded-xl hover:bg-secondary/55 cursor-pointer transition-all duration-200"
-                  >
-                    <div className="flex items-center gap-2.5 flex-1 min-w-0">
-                      <span className={`h-2.5 w-2.5 rounded-full shrink-0 ${color}`} />
-                      <span className="text-xs font-bold text-foreground/80 truncate">{app.name}</span>
-                      <div className="flex-1 max-w-[80px] h-1.5 bg-muted/40 rounded-full overflow-hidden ml-2">
-                        <div className={`h-full rounded-full ${color}`} style={{ width: `${sharePercent}%` }} />
+            <div className="flex flex-col gap-2.5">
+              {displayAppStats.length === 0 ? (
+                <p className="text-[10px] text-muted-foreground text-center py-4">No application logs recorded.</p>
+              ) : (
+                displayAppStats.map((app, idx) => {
+                  const colors = [
+                    'bg-[oklch(0.65_0.15_250)]',
+                    'bg-[oklch(0.68_0.14_170)]',
+                    'bg-[oklch(0.66_0.15_300)]',
+                    'bg-[oklch(0.60_0.10_120)]',
+                    'bg-[oklch(0.70_0.08_80)]',
+                    'bg-[oklch(0.62_0.12_25)]',
+                    'bg-[oklch(0.64_0.10_145)]'
+                  ]
+                  const color = colors[idx % colors.length]
+                  const sharePercent = Math.round((app.timeSpent / (totalScreenTimeMinutes || 1)) * 100)
+                  
+                  return (
+                    <button
+                      key={app.id}
+                      onClick={handleAppDetailSelect(app.id)}
+                      className="flex items-center justify-between py-2 px-2.5 rounded-xl active:bg-secondary/55 cursor-pointer transition-all duration-200"
+                    >
+                      <div className="flex items-center gap-2.5 flex-1 min-w-0">
+                        <span className={`h-2.5 w-2.5 rounded-full shrink-0 ${color}`} />
+                        <span className="text-xs font-bold text-foreground/80 truncate">{app.name}</span>
+                        <div className="flex gap-0.5 ml-2 shrink-0">
+                          {[0, 1, 2, 3].map((step) => {
+                            const isFilled = sharePercent > (step * 25)
+                            return (
+                              <div 
+                                key={step} 
+                                className={`h-1.5 w-1.5 rounded-sm transition-colors duration-200 ${
+                                  isFilled ? color : 'bg-secondary/70'
+                                }`} 
+                              />
+                            )
+                          })}
+                        </div>
                       </div>
-                    </div>
-                    <div className="flex items-center gap-1">
-                      <span className="text-[10px] text-muted-foreground font-extrabold">{Math.floor(app.timeSpent / 60)}h {app.timeSpent % 60}m</span>
-                      <CaretRightIcon size={12} className="text-muted-foreground/55" />
-                    </div>
-                  </button>
-                )
-              })}
-            </div>
-          </div>
-
-          {/* Card 2: Notifications */}
-          <div className="rounded-3xl bg-card/60 p-5 border border-border backdrop-blur-xl flex flex-col gap-4 shadow-sm">
-            <div>
-              <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider">Notifications today</span>
-
-              <h3 className="font-heading text-2xl font-black text-foreground/90 mt-1">{totalNotifications}</h3>
-            </div>
-
-            <div className="h-28 w-full flex items-end justify-between px-2">
-              {weeklyUsage.map((val) => (
-                <div key={val.day} className="flex flex-col items-center gap-1.5 flex-1">
-                  <div className="w-3.5 bg-secondary dark:bg-slate-800 rounded-full h-20 flex items-end overflow-hidden">
-                    <div 
-                      className="w-full bg-[oklch(0.68_0.14_170)] rounded-full" 
-                      style={{ height: `${(val.minutes / maxWeeklyMins) * 80}%` }}
-                    />
-                  </div>
-                  <span className="text-[9px] font-bold text-muted-foreground">{val.day.charAt(0)}</span>
-                </div>
-              ))}
-            </div>
-          </div>
-
-          {/* Card 3: Unlocks */}
-          <div className="rounded-3xl bg-card/60 p-5 border border-border backdrop-blur-xl flex flex-col gap-4 shadow-sm mb-4">
-            <div>
-              <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider">Unlocks today</span>
-
-              <h3 className="font-heading text-2xl font-black text-foreground/90 mt-1">{totalPickups}</h3>
-            </div>
-
-            <div className="h-28 w-full flex items-end justify-between px-2">
-              {weeklyUsage.map((val) => (
-                <div key={val.day} className="flex flex-col items-center gap-1.5 flex-1">
-                  <div className="w-3.5 bg-secondary dark:bg-slate-800 rounded-full h-20 flex items-end overflow-hidden">
-                    <div 
-                      className="w-full bg-[oklch(0.66_0.15_300)] rounded-full" 
-                      style={{ height: `${(val.minutes / maxWeeklyMins) * 90}%` }}
-                    />
-                  </div>
-                  <span className="text-[9px] font-bold text-muted-foreground">{val.day.charAt(0)}</span>
-                </div>
-              ))}
+                      <div className="flex items-center gap-1">
+                        <span className="text-[10px] text-muted-foreground font-extrabold">{Math.floor(app.timeSpent / 60)}h {app.timeSpent % 60}m</span>
+                        <CaretRightIcon size={12} className="text-muted-foreground/55" />
+                      </div>
+                    </button>
+                  )
+                })
+              )}
             </div>
           </div>
         </div>
       )
     }
 
-    // 3. SCREEN TIME GOAL DATE CELL HISTORY VIEW
+    // 3. SCREEN TIME GOAL SETUP VIEW
     if (wellbeingSubPage === 'goal') {
-      const isOver = activeGoalDetail.status === 'over'
-      
+      const displayTotalScreenTime = showEmptyState ? 0 : totalScreenTimeMinutes
+      const isOver = displayTotalScreenTime > screenTimeGoal
+      const displayRemaining = showEmptyState ? screenTimeGoal : Math.max(screenTimeGoal - displayTotalScreenTime, 0)
+      const displayGoalProgress = showEmptyState ? 0 : Math.min(displayTotalScreenTime / screenTimeGoal, 1)
+
+      const calendarDaysData = showEmptyState 
+        ? calendarDays.map((d) => ({ ...d, used: 0, status: 'remaining' }))
+        : calendarDays
+
       return (
-        <div className="flex flex-col gap-5">
-          {/* Header */}
+        <div className="flex flex-col gap-4">
           <div className="flex items-center justify-between px-1">
             <button 
               onClick={handleGoToHome}
-              className="h-10 w-10 flex items-center justify-center rounded-full bg-secondary/80 text-foreground border border-border/40 hover:bg-secondary cursor-pointer transition-colors"
+              className="h-9 w-9 flex items-center justify-center rounded-lg bg-secondary border border-border/80 text-foreground cursor-pointer active:scale-95"
             >
               <ArrowLeftIcon size={16} weight="bold" />
             </button>
-
-            <h2 className="font-heading text-lg font-bold tracking-tight text-foreground/95">Screen time goal</h2>
-
-            <div className="h-10 w-10 shrink-0" />
+            <h1 className="font-heading text-sm font-bold text-foreground/90">Screen Time Goal</h1>
+            <div className="h-9 w-9" />
           </div>
 
-          {/* Calendar Grid card */}
-          <div className="rounded-3xl bg-card/60 p-5 border border-border backdrop-blur-xl flex flex-col gap-4 shadow-sm">
-            <div className="flex items-center justify-between mb-2">
-              <span className="text-xs font-extrabold text-foreground/90">30 May – 26 June</span>
-            </div>
-
-            <div className="grid grid-cols-7 gap-2.5 text-center text-[10px] font-black text-muted-foreground/60 uppercase">
-              <span>S</span><span>M</span><span>T</span><span>W</span><span>T</span><span>F</span><span>S</span>
-            </div>
-
-            <div className="grid grid-cols-7 gap-2.5">
-              {calendarDays.map((d) => {
-                const isSelected = goalDetailDate === d.date
-                const isToday = d.date === '26' && d.month === 'June'
-                
-                return (
-                  <button
-                    key={`${d.month}_${d.date}`}
-                    onClick={() => handleSelectGoalDate(d.date)}
-                    className={`relative h-9.5 w-9.5 rounded-full flex items-center justify-center cursor-pointer transition-all ${
-                      isSelected ? 'ring-2 ring-primary ring-offset-2' : ''
-                    }`}
-                  >
-                    {d.status === 'used' && (
-                      <span className="absolute inset-0 rounded-full border-2 border-primary/90" />
-                    )}
-                    {d.status === 'over' && (
-                      <span className="absolute inset-0 rounded-full border-2 border-rose-500/90" />
-                    )}
-                    {d.status === 'remaining' && (
-                      <span className="absolute inset-0 rounded-full border-2 border-dashed border-muted/20" />
-                    )}
-
-                    <span className={`text-[11px] font-extrabold relative z-10 ${
-                      isToday ? 'text-primary font-black bg-primary/10 px-1.5 py-0.5 rounded-full' : 'text-foreground/90'
-                    }`}>
-                      {d.date}
-                    </span>
-                  </button>
-                )
-              })}
-            </div>
-
-            <div className="flex justify-between items-center text-[10px] font-bold text-muted-foreground/80 mt-2 px-1">
-              <div className="flex items-center gap-1">
-                <span className="h-2 w-2 rounded-full bg-primary" />
-                <span>Used</span>
-              </div>
-              <div className="flex items-center gap-1">
-                <span className="h-2 w-2 rounded-full bg-muted-foreground/40" />
-                <span>Remaining</span>
-              </div>
-              <div className="flex items-center gap-1">
-                <span className="h-2 w-2 rounded-full bg-rose-500" />
-                <span>Over goal</span>
-              </div>
-            </div>
-          </div>
-
-          {/* Semicircular progress display */}
-          <div className="rounded-3xl bg-card/60 p-6 border border-border backdrop-blur-xl flex flex-col items-center gap-4 shadow-sm">
+          <div className="rounded-2xl bg-card p-4.5 border border-border backdrop-blur-xl flex flex-col items-center gap-4 shadow-sm">
             <h4 className="text-xs font-bold text-muted-foreground uppercase tracking-wider">
               {activeGoalDetail.date} June usage detail
             </h4>
 
-            <div className="relative h-[90px] w-[180px] overflow-hidden flex items-end justify-center">
-              <svg className="absolute top-0 left-0 h-[100px] w-[180px]">
-                <path
-                  d="M 20 80 A 70 70 0 0 1 160 80"
-                  fill="none"
-                  stroke="currentColor"
-                  className="text-muted/10 dark:text-muted/5"
-                  strokeWidth="10.5"
-                  strokeLinecap="round"
-                />
-                <path
-                  d="M 20 80 A 70 70 0 0 1 160 80"
-                  fill="none"
-                  stroke={isOver ? 'oklch(0.58 0.10 25)' : 'oklch(0.56 0.12 250)'}
-                  strokeWidth="10.5"
-                  strokeLinecap="round"
-                  strokeDasharray={semiCircumference}
-                  strokeDashoffset={semiCircumference * (1 - Math.min(activeGoalDetail.used / activeGoalDetail.goal, 1))}
-                />
-              </svg>
+            <div className="flex flex-col items-center justify-center py-2 w-full">
+              <span className="font-heading text-2xl font-black text-foreground/90">
+                {Math.floor(displayRemaining / 60)}h {displayRemaining % 60}m
+              </span>
+              <span className="text-[8px] font-bold text-muted-foreground uppercase tracking-wider mt-0.5">
+                {isOver ? 'Over target' : 'Remaining'}
+              </span>
 
-              <div className="flex flex-col items-center text-center pb-2">
-                {isOver ? (
-                  <>
-                    <span className="font-heading text-2xl font-black text-rose-500">
-                      {Math.floor((activeGoalDetail.used - activeGoalDetail.goal) / 60)}h {(activeGoalDetail.used - activeGoalDetail.goal) % 60}m
-                    </span>
-                    <span className="text-[9px] font-bold text-rose-400 uppercase tracking-wider mt-0.5">Over goal</span>
-                  </>
-                ) : (
-                  <>
-                    <span className="font-heading text-2xl font-black text-foreground/95">
-                      {Math.floor((activeGoalDetail.goal - activeGoalDetail.used) / 60)}h {(activeGoalDetail.goal - activeGoalDetail.used) % 60}m
-                    </span>
-                    <span className="text-[9px] font-bold text-muted-foreground uppercase tracking-wider mt-0.5">Remaining</span>
-                  </>
-                )}
+              <div className="flex gap-1.5 mt-4 w-full max-w-[200px]">
+                {[0, 1, 2, 3, 4, 5].map((step) => {
+                  const isFilled = displayGoalProgress > (step / 6)
+                  return (
+                    <div 
+                      key={step} 
+                      className={`h-2 flex-1 rounded-sm transition-colors duration-200 ${
+                        isFilled ? 'bg-primary' : 'bg-secondary/70'
+                      }`}
+                    />
+                  )
+                })}
               </div>
             </div>
 
-            <button 
-              onClick={handleOpenGoalPicker}
-              className="h-10 px-5 rounded-xl bg-secondary hover:bg-muted border border-border text-xs font-bold text-foreground/80 cursor-pointer"
-            >
-              Goal {Math.floor(screenTimeGoal / 60)} h
-            </button>
+            <div className="flex justify-between items-center text-[10px] font-bold text-muted-foreground border-t border-border/40 pt-3 w-full">
+              <span>Goal: {Math.floor(screenTimeGoal / 60)}h</span>
+              <button 
+                onClick={handleOpenGoalPicker}
+                className="text-primary active:underline cursor-pointer"
+              >
+                Change goal
+              </button>
+            </div>
+          </div>
+
+          <div className="rounded-2xl bg-card p-4.5 border border-border backdrop-blur-xl flex flex-col gap-3.5 shadow-sm">
+            <span className="font-heading text-xs font-bold text-muted-foreground uppercase tracking-wider">June History</span>
+            
+            <div className="grid grid-cols-7 gap-2">
+              {calendarDaysData.slice(-14).map((day) => {
+                const isSelected = day.date === goalDetailDate
+                return (
+                  <button
+                    key={day.date}
+                    onClick={handleSelectGoalDate(day.date)}
+                    className={`h-9 flex flex-col items-center justify-center rounded-lg border text-[10px] font-bold active:scale-95 transition-all cursor-pointer ${
+                      isSelected 
+                        ? 'border-primary bg-primary/10 text-primary' 
+                        : day.status === 'over' 
+                          ? 'border-rose-300 bg-rose-500/5 text-rose-600'
+                          : day.status === 'used'
+                            ? 'border-emerald-300 bg-emerald-500/5 text-emerald-600'
+                            : 'border-border bg-secondary/30 text-muted-foreground'
+                    }`}
+                  >
+                    <span>{day.date}</span>
+                  </button>
+                )
+              })}
+            </div>
           </div>
         </div>
       )
     }
 
-    // 4. WEEKLY REPORT SPLINE & HEATMAP VIEW
+    // 4. WEEKLY REPORT DETAIL SCREEN
     if (wellbeingSubPage === 'report') {
+      const displayWeeklyUsage = showEmptyState 
+        ? weeklyUsage.map((d) => ({ ...d, minutes: 0 }))
+        : weeklyUsage
+
       return (
-        <div className="flex flex-col gap-5">
-          {/* Header */}
+        <div className="flex flex-col gap-4">
           <div className="flex items-center justify-between px-1">
             <button 
               onClick={handleGoToHome}
-              className="h-10 w-10 flex items-center justify-center rounded-full bg-secondary/80 text-foreground border border-border/40 hover:bg-secondary cursor-pointer transition-colors"
+              className="h-9 w-9 flex items-center justify-center rounded-lg bg-secondary border border-border/80 text-foreground cursor-pointer active:scale-95"
             >
               <ArrowLeftIcon size={16} weight="bold" />
             </button>
-
-            <h2 className="font-heading text-lg font-bold tracking-tight text-foreground/95">Weekly report</h2>
-
-            <button className="h-10 w-10 flex items-center justify-center rounded-full bg-secondary/80 text-foreground border border-border/40 hover:bg-secondary cursor-pointer transition-colors">
-              <DotsThreeVerticalIcon size={20} weight="bold" />
-            </button>
+            <h1 className="font-heading text-sm font-bold text-foreground/90">Weekly Report</h1>
+            <div className="h-9 w-9" />
           </div>
 
-          <div className="flex justify-between items-center">
-            <span className="text-xs font-bold text-muted-foreground">14 June - 20 June (Week 25)</span>
-            <div className="flex gap-1.5 select-none">
-              {['W23', 'W24', 'W25'].map((w) => (
-                <span 
-                  key={w} 
-                  className={`text-[9.5px] font-black px-2 py-0.5 rounded-md ${
-                    w === 'W25' ? 'bg-primary text-primary-foreground shadow-sm' : 'bg-secondary text-muted-foreground'
-                  }`}
-                >
-                  {w}
-                </span>
-              ))}
-            </div>
-          </div>
+          <div className="rounded-2xl bg-card p-4.5 border border-border backdrop-blur-xl flex flex-col gap-4 shadow-sm">
+            <span className="font-heading text-xs font-bold text-muted-foreground uppercase tracking-wider">June Screen Time</span>
 
-          {/* Card 1: Hatched weekly bars */}
-          <div className="rounded-3xl bg-card/60 p-5 border border-border backdrop-blur-xl flex flex-col gap-4 shadow-sm">
-            <div>
-              <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider">Screen time by week</span>
+            <div className="h-[120px] flex items-end justify-between px-2 pt-2 border-b border-border/40 pb-2">
+              {displayWeeklyUsage.map((day) => {
+                const heightPercent = Math.min((day.minutes / maxWeeklyMins) * 100, 100)
+                const isSelected = selectedDate === day.day
 
-              <h3 className="font-heading text-2xl font-black text-foreground/95 mt-1">6 h 16 m</h3>
-
-              <p className="text-[10px] font-semibold text-muted-foreground mt-0.5">Daily average screen time</p>
-            </div>
-
-            <div className="h-28 w-full flex items-end justify-between px-2 pt-2 select-none relative">
-              <div className="absolute top-1/2 left-0 right-0 border-t border-dashed border-muted-foreground/30 z-0 flex justify-end">
-                <span className="text-[8px] bg-card px-1 font-bold text-muted-foreground -mt-2">Avg. 5h</span>
-              </div>
-              
-              {weeklyUsage.map((val) => {
-                const heightPercent = (val.minutes / maxWeeklyMins) * 100
-                const isOver = val.minutes > val.goalMinutes
-                
                 return (
-                  <div key={val.day} className="flex flex-col items-center gap-1.5 flex-1 relative z-10">
-                    <div className="w-3.5 bg-secondary dark:bg-slate-800 rounded-full h-20 flex items-end overflow-hidden relative shadow-inner">
+                  <div key={day.day} className="flex flex-col items-center gap-1.5 flex-1 max-w-[28px]">
+                    <div className="w-full relative h-[90px] flex items-end">
                       <div 
-                        className={`w-full rounded-full transition-all duration-300 ${
-                          isOver ? 'bg-rose-500' : 'bg-emerald-500'
-                        }`} 
-                        style={{ 
-                          height: `${heightPercent}%`,
-                          backgroundImage: 'repeating-linear-gradient(45deg, transparent, transparent 3px, rgba(255,255,255,0.15) 3px, rgba(255,255,255,0.15) 6px)'
-                        }}
+                        className={`w-full rounded-t-sm transition-all duration-300 ${
+                          isSelected ? 'bg-primary' : 'bg-primary/30'
+                        }`}
+                        style={{ height: `${heightPercent}%` }}
                       />
                     </div>
-
-                    <span className="text-[9px] font-extrabold text-muted-foreground">{val.day.charAt(0)}</span>
+                    <span className={`text-[8.5px] font-bold ${isSelected ? 'text-primary' : 'text-muted-foreground'}`}>{day.day}</span>
                   </div>
                 )
               })}
             </div>
+          </div>
 
-            <div className="border-t border-border/40 pt-3 flex justify-between items-center text-[10px] font-bold">
-              <div className="flex items-center gap-1.5">
-                <span className="h-2.5 w-2.5 rounded-full bg-emerald-500" />
-                <span className="text-muted-foreground">Goal achieved:</span>
-                <span className="text-foreground font-extrabold">4 days</span>
+          <div className="rounded-2xl bg-card p-4.5 border border-border backdrop-blur-xl flex flex-col gap-3 shadow-sm">
+            <span className="font-heading text-xs font-bold text-muted-foreground uppercase tracking-wider">Screen time balance</span>
+
+            <p className="text-[10px] font-medium leading-relaxed text-muted-foreground">On average each day, you spent more time off your phone than active on it.</p>
+
+            <div className="flex gap-1.5 w-full mt-1">
+              <div className="flex-1 bg-primary/10 border border-primary/20 rounded-xl p-2.5 flex items-center justify-between">
+                <span className="text-[10px] font-bold text-primary">Screen On</span>
+                <span className="text-xs font-extrabold text-primary">{showEmptyState ? '0%' : '33%'}</span>
               </div>
-            </div>
-          </div>
-
-          {/* Card 2: Screen time balance awake ratio */}
-          <div className="rounded-3xl bg-card/60 p-5 border border-border backdrop-blur-xl flex flex-col gap-3 shadow-sm">
-            <h3 className="font-heading text-xs font-bold text-muted-foreground uppercase tracking-wider">Screen time balance</h3>
-
-            <p className="text-[10px] font-medium leading-relaxed text-muted-foreground">On average each day while you were awake, you spent 6 h 52 m more not using your phone than using it.</p>
-
-            <div className="h-4.5 w-full bg-secondary dark:bg-slate-800 rounded-full overflow-hidden flex shadow-inner border border-border/10">
-              <div className="bg-primary h-full" style={{ width: '33%' }} />
-              <div className="bg-muted-foreground/30 h-full" style={{ width: '67%' }} />
-            </div>
-
-            <div className="flex justify-between items-center text-[10px] font-bold text-muted-foreground/90 px-1 mt-0.5">
-              <span>Screen on: 6 h 15 m</span>
-              <span>Screen off: 13 h 7 m</span>
-            </div>
-          </div>
-
-          {/* Card 3: Top usage category changed */}
-          <div className="rounded-3xl bg-card/60 p-5 border border-border backdrop-blur-xl flex flex-col gap-4 shadow-sm">
-            <div>
-              <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider">Top usage category changed</span>
-
-              <h3 className="font-heading text-2xl font-black text-foreground/95 mt-1">Social</h3>
-
-              <p className="text-[10.5px] font-bold text-muted-foreground mt-0.5">33 h 47 m</p>
-
-              <p className="text-[9.5px] font-medium text-muted-foreground/60 mt-1">23 h 13 m used on average for previous 3 weeks</p>
-            </div>
-
-            <div className="flex flex-col gap-2">
-              {[
-                { id: 'insta', name: 'Instagram', val: '16 h 38 m' },
-                { id: 'wa', name: 'WhatsApp', val: '11 h 47 m' },
-                { id: 'rd', name: 'Reddit', val: '1 h 41 m' }
-              ].map((app) => (
-                <div key={app.id} className="flex justify-between items-center text-xs font-semibold py-1">
-                  <span className="text-foreground/90">{app.name}</span>
-                  <span className="text-muted-foreground">{app.val}</span>
-                </div>
-              ))}
-            </div>
-          </div>
-
-          {/* Card 4: Peak usage heatmap */}
-          <div className="rounded-3xl bg-card/60 p-5 border border-border backdrop-blur-xl flex flex-col gap-4 shadow-sm mb-4">
-            <div>
-              <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider">Peak usage times</span>
-
-              <h3 className="font-heading text-sm font-semibold tracking-tight text-foreground/90 mt-1">Daily screen time pattern</h3>
-            </div>
-
-            <div className="flex flex-col gap-2.5 select-none pt-2">
-              {heatmapData.map((row) => (
-                <div key={row.day} className="flex items-center gap-2">
-                  <span className="text-[10px] font-extrabold text-muted-foreground/75 w-3 text-center">{row.day}</span>
-                  
-                  <div className="flex-1 flex gap-1 justify-between">
-                    {row.values.map((v, hIdx) => {
-                      const colors = [
-                        'bg-secondary/40 dark:bg-slate-800/40',
-                        'bg-primary/20',
-                        'bg-primary/50',
-                        'bg-primary/95'
-                      ]
-                      return (
-                        <div 
-                          key={hIdx}
-                          className={`h-2.5 flex-1 rounded-sm ${colors[v]}`}
-                          title={`Hour ${hIdx}: level ${v}`}
-                        />
-                      )
-                    })}
-                  </div>
-                </div>
-              ))}
-            </div>
-
-            <div className="flex justify-between items-center text-[8.5px] font-black text-muted-foreground/50 px-5 mt-1">
-              <span>0</span><span>6</span><span>12</span><span>18</span><span>24(h)</span>
+              <div className="flex-1 bg-secondary/80 border border-border/80 rounded-xl p-2.5 flex items-center justify-between">
+                <span className="text-[10px] font-bold text-muted-foreground">Screen Off</span>
+                <span className="text-xs font-extrabold text-foreground">{showEmptyState ? '100%' : '67%'}</span>
+              </div>
             </div>
           </div>
         </div>
       )
     }
 
-    // 5. SET APP TIMER VIEW
+    // 5. TIMER SLIDER WHEEL PICKER VIEW
     if (wellbeingSubPage === 'set-timer') {
-      const activeTimerApp = appStats.find(a => a.id === selectedTimerApp) || appStats[0]
-      const handleSelectApp = (id: string) => setSelectedTimerApp(id)
-      
+      const activeApp = appStats.find(a => a.id === selectedTimerApp)
+      const appName = activeApp?.name || 'Social'
+
       return (
-        <div className="flex flex-col gap-5">
-          {/* Header */}
+        <div className="flex flex-col gap-4">
           <div className="flex items-center justify-between px-1">
-            <h2 className="font-heading text-lg font-bold tracking-tight text-foreground/95">Set timer</h2>
-
-            <div className="h-10 w-10 shrink-0" />
+            <button 
+              onClick={handleGoToHome}
+              className="h-9 w-9 flex items-center justify-center rounded-lg bg-secondary border border-border/80 text-foreground cursor-pointer active:scale-95"
+            >
+              <ArrowLeftIcon size={16} weight="bold" />
+            </button>
+            <h1 className="font-heading text-sm font-bold text-foreground/90">App Timer</h1>
+            <div className="h-9 w-9" />
           </div>
 
-          {/* Form details */}
-          <div className="rounded-3xl bg-card/60 p-5 border border-border backdrop-blur-xl flex flex-col gap-4 shadow-sm">
-            <div className="flex flex-col gap-1.5">
-              <span className="text-[9.5px] font-bold text-muted-foreground uppercase tracking-wider pl-1">Apps and app categories</span>
-              
-              <div className="flex gap-2 overflow-x-auto pb-1 mb-1 scrollbar-none">
-                {appStats.map((app) => (
-                  <button
-                    key={app.id}
-                    onClick={() => handleSelectApp(app.id)}
-                    className={`px-3 py-1.5 rounded-xl text-[10px] font-extrabold whitespace-nowrap border transition-all cursor-pointer ${
-                      selectedTimerApp === app.id 
-                        ? 'bg-primary border-primary/20 text-primary-foreground shadow-sm' 
-                        : 'bg-secondary/60 border-border/50 text-muted-foreground hover:text-foreground'
-                    }`}
-                  >
-                    {app.name}
-                  </button>
-                ))}
-              </div>
+          <div className="rounded-2xl bg-card p-4.5 border border-border backdrop-blur-xl flex flex-col gap-4 shadow-sm">
+            <div>
+              <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider">Set Limit for</span>
+              <h2 className="font-heading text-lg font-bold text-foreground/90 mt-0.5">{appName}</h2>
             </div>
 
-            <div className="flex flex-col gap-1">
-              <span className="text-[9.5px] font-bold text-muted-foreground uppercase tracking-wider pl-1">App timer name</span>
-              <div className="h-11 px-4 rounded-xl border border-border bg-secondary/40 flex items-center justify-between text-sm font-bold text-foreground">
-                <span>{activeTimerApp.name} timer</span>
-                <HourglassIcon size={16} className="text-primary" />
-              </div>
-            </div>
-
-            <div className="flex flex-col gap-1 mt-1">
-              <span className="text-[9.5px] font-bold text-muted-foreground uppercase tracking-wider pl-1">App timer alerts</span>
-              <p className="text-xs font-semibold text-primary/80 pl-1">1 minute, 5 minutes, 10 minutes before limit</p>
-            </div>
-          </div>
-
-          {/* Wheel Selector Schedule wrapper */}
-          <div className="rounded-3xl bg-card/60 p-5 border border-border backdrop-blur-xl flex flex-col gap-4 shadow-sm">
-            <div className="flex items-center justify-between">
-              <span className="text-xs font-extrabold text-foreground/90">Timer duration</span>
-              <span className="text-xs font-black text-primary">{wheelHours}h {wheelMinutes}m</span>
-            </div>
-
-            <div className="flex gap-4 items-center justify-center py-4 border-t border-b border-border/40 my-1 bg-secondary/20 rounded-2xl relative overflow-hidden h-[120px]">
-              <div className="absolute inset-x-0 top-0 h-9 bg-gradient-to-b from-card to-transparent pointer-events-none z-10" />
-              <div className="absolute inset-x-0 bottom-0 h-9 bg-gradient-to-t from-card to-transparent pointer-events-none z-10" />
-
+            <div className="flex gap-4 items-center justify-center py-6 border-t border-b border-border/40 bg-secondary/35 rounded-xl relative overflow-hidden h-[120px]">
               <div className="flex-1 flex flex-col items-center overflow-y-auto h-24 scrollbar-none gap-2">
-                {[0, 1, 2, 3, 4, 5].map((h) => {
+                {[0, 1, 2, 3, 4, 5, 6].map((h) => {
                   const isSelected = h === wheelHours
                   return (
                     <button
                       key={h}
                       onClick={() => setWheelHours(h)}
-                      className={`text-sm font-bold transition-all ${
-                        isSelected ? 'text-primary font-black scale-125' : 'text-muted-foreground/60'
+                      className={`text-sm font-extrabold transition-all cursor-pointer ${
+                        isSelected ? 'text-primary scale-110 font-black' : 'text-muted-foreground/50'
                       }`}
                     >
-                      {h} h
+                      {h} hours
                     </button>
                   )
                 })}
               </div>
 
-              <span className="text-xl font-bold text-muted-foreground/80">:</span>
+              <span className="text-xs font-bold text-muted-foreground/60">:</span>
 
               <div className="flex-1 flex flex-col items-center overflow-y-auto h-24 scrollbar-none gap-2">
-                {[0, 15, 30, 45].map((m) => {
+                {[0, 5, 10, 15, 20, 25, 30, 35, 40, 45, 50, 55].map((m) => {
                   const isSelected = m === wheelMinutes
                   return (
                     <button
                       key={m}
                       onClick={() => setWheelMinutes(m)}
-                      className={`text-sm font-bold transition-all ${
-                        isSelected ? 'text-primary font-black scale-125' : 'text-muted-foreground/60'
+                      className={`text-sm font-extrabold transition-all cursor-pointer ${
+                        isSelected ? 'text-primary scale-110 font-black' : 'text-muted-foreground/50'
                       }`}
                     >
-                      {m} m
+                      {m} min
                     </button>
                   )
                 })}
               </div>
             </div>
 
-            {/* Day initials */}
-            <div className="flex justify-between items-center px-2 py-1 select-none">
-              {['S', 'M', 'T', 'W', 'T', 'F', 'S'].map((day, idx) => (
-                <span 
-                  key={idx}
-                  className="h-8.5 w-8.5 rounded-full border border-border bg-secondary/40 text-[10px] font-black flex items-center justify-center text-foreground/80"
-                >
-                  {day}
-                </span>
-              ))}
+            <div className="flex items-center gap-2.5 w-full mt-2">
+              <button 
+                onClick={handleGoToHome}
+                className="flex-1 h-10 px-6 rounded-xl bg-secondary border border-border text-xs font-bold text-foreground/80 cursor-pointer active:scale-95"
+              >
+                Cancel
+              </button>
+              
+              <button 
+                onClick={handleSaveTimer}
+                className="flex-1 h-10 px-8 rounded-xl bg-primary text-primary-foreground text-xs font-bold shadow-sm cursor-pointer active:scale-95"
+              >
+                Save timer
+              </button>
             </div>
-          </div>
-
-          <div className="flex gap-3 justify-center mb-6">
-            <button
-              onClick={handleGoToHome}
-              className="h-11 px-6 rounded-full bg-secondary hover:bg-muted border border-border text-xs font-bold text-foreground/80 cursor-pointer"
-            >
-              Cancel
-            </button>
-
-            <button
-              onClick={handleSaveTimer}
-              className="h-11 px-8 rounded-full bg-primary text-primary-foreground text-xs font-bold shadow-md hover:opacity-95 cursor-pointer"
-            >
-              Save
-            </button>
           </div>
         </div>
       )
@@ -1083,45 +957,44 @@ export const LayoutPersonal = () => {
 
     return null
   }, [
-    wellbeingSubPage, 
-    formattedTotalScreenTime, 
-    donutSegments, 
-    weeklyUsage, 
+    wellbeingSubPage,
+    formattedTotalScreenTime,
+    totalPickups,
+    totalNotifications,
+    weeklyUsage,
     selectedDate,
+    setSelectedDate,
     dashboardViewMode,
-    goalDetailDate,
-    activeGoalDetail,
-    screenTimeGoal,
-    selectedTimerApp,
-    wheelHours,
+    setDashboardViewMode,
     wheelMinutes,
-    appStats,
+    selectedTimerApp,
+    showEmptyState,
+    consoleTab,
+    calendarDays,
+    activeGoalDetail,
     heatmapData,
     maxWeeklyMins,
-    totalNotifications,
-    totalPickups,
-    semiCircumference,
-    todayRemaining,
-    todayProgress,
-    calendarDays,
     handleGoToDashboard,
     handleGoToGoal,
-    handleGoToHome,
     handleGoToReport,
-    handleOpenGoalPicker,
+    handleGoToHome,
     handleOpenSetTimer,
+    handleOpenGoalPicker,
+    handleCloseGoalPicker,
+    handleSaveGoal,
     handleSaveTimer,
+    handleToggleEmptyState,
+    handleConsoleTabSelect,
+    handleAppLimitSelect,
     handleSelectDay,
     handleSelectGoalDate,
-    setActiveTab,
-    setDashboardViewMode,
-    handleCategoriesCardClick,
-    handleTimersCardClick,
-    setActiveAppDetailId
+    handleAppDetailSelect,
+    handleGoalHourSelect,
+    handleResetGoalToDefault
   ])
 
   return (
-    <section className="flex flex-col gap-6 relative select-none">
+    <section className="flex flex-col gap-4 relative select-none">
       {subPageContent}
 
       <AnimatePresence>
@@ -1137,20 +1010,20 @@ export const LayoutPersonal = () => {
               animate={{ y: 0 }}
               exit={{ y: 150 }}
               transition={{ type: 'spring', damping: 25, stiffness: 220 }}
-              className="w-full bg-card rounded-t-3xl border-t border-border p-5 flex flex-col gap-4 shadow-xl text-foreground"
+              className="w-full bg-card rounded-t-2xl border-t border-border p-5 flex flex-col gap-4 shadow-xl text-foreground"
             >
               <h3 className="font-heading text-sm font-bold tracking-tight text-center">Set screen time goal</h3>
 
-              <div className="flex gap-4 items-center justify-center py-4 border-t border-b border-border/40 my-1 bg-secondary/30 rounded-2xl relative overflow-hidden h-[100px]">
+              <div className="flex gap-4 items-center justify-center py-4 border-t border-b border-border/40 my-1 bg-secondary/30 rounded-xl relative overflow-hidden h-[100px]">
                 <div className="flex-1 flex flex-col items-center overflow-y-auto h-20 scrollbar-none gap-2">
                   {[2, 3, 4, 5, 6, 7, 8].map((h) => {
                     const isSelected = h === Math.floor(tempGoalMins / 60)
                     return (
                       <button
                         key={h}
-                        onClick={() => setTempGoalMins(h * 60)}
+                        onClick={handleGoalHourSelect(h)}
                         className={`text-sm font-extrabold transition-all cursor-pointer ${
-                          isSelected ? 'text-primary scale-125 font-black' : 'text-muted-foreground/60'
+                          isSelected ? 'text-primary scale-110 font-black' : 'text-muted-foreground/60'
                         }`}
                       >
                         {h} hours
@@ -1163,25 +1036,21 @@ export const LayoutPersonal = () => {
               <div className="grid grid-cols-3 divide-x divide-border/60 text-center border-t border-border/40 pt-4 mt-2">
                 <button 
                   onClick={handleCloseGoalPicker}
-                  className="py-2.5 text-xs font-bold text-muted-foreground hover:text-foreground cursor-pointer"
+                  className="py-2.5 text-xs font-bold text-muted-foreground active:text-foreground cursor-pointer"
                 >
                   Cancel
                 </button>
                 
                 <button 
-                  onClick={() => {
-                    setScreenTimeGoal(360)
-                    setShowGoalModal(false)
-                    addToast("Reset goal to default 6h", "info")
-                  }}
-                  className="py-2.5 text-xs font-bold text-rose-500 hover:text-rose-600 cursor-pointer"
+                  onClick={handleResetGoalToDefault}
+                  className="py-2.5 text-xs font-bold text-rose-500 active:text-rose-600 cursor-pointer"
                 >
                   Delete
                 </button>
 
                 <button 
                   onClick={handleSaveGoal}
-                  className="py-2.5 text-xs font-bold text-primary hover:text-primary-dark cursor-pointer font-black"
+                  className="py-2.5 text-xs font-bold text-primary active:text-primary-dark cursor-pointer font-black"
                 >
                   Done
                 </button>
