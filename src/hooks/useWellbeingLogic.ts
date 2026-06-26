@@ -27,6 +27,13 @@ export const useWellbeingLogic = () => {
   const blockerHistory = useWellbeingStore((state) => state.blockerHistory)
   const whitelist = useWellbeingStore((state) => state.whitelist)
   const blacklist = useWellbeingStore((state) => state.blacklist)
+  const wellbeingSubPage = useWellbeingStore((state) => state.wellbeingSubPage)
+  const selectedDate = useWellbeingStore((state) => state.selectedDate)
+  const dashboardViewMode = useWellbeingStore((state) => state.dashboardViewMode)
+  const goalDetailDate = useWellbeingStore((state) => state.goalDetailDate)
+  const screenTimeGoal = useWellbeingStore((state) => state.screenTimeGoal)
+  const timerAppId = useWellbeingStore((state) => state.timerAppId)
+  const timerDuration = useWellbeingStore((state) => state.timerDuration)
 
   // Zustand Actions
   const setActiveTab = useWellbeingStore((state) => state.setActiveTab)
@@ -44,6 +51,7 @@ export const useWellbeingLogic = () => {
   const addChildBlacklist = useWellbeingStore((state) => state.addChildBlacklist)
   const removeChildBlacklist = useWellbeingStore((state) => state.removeChildBlacklist)
   const setSelectedChildId = useWellbeingStore((state) => state.setSelectedChildId)
+  const addChildProfile = useWellbeingStore((state) => state.addChildProfile)
   const toggleBlockerOption = useWellbeingStore((state) => state.toggleBlockerOption)
   const addWhitelistDomain = useWellbeingStore((state) => state.addWhitelistDomain)
   const removeWhitelistDomain = useWellbeingStore((state) => state.removeWhitelistDomain)
@@ -53,6 +61,13 @@ export const useWellbeingLogic = () => {
   const addToast = useWellbeingStore((state) => state.addToast)
   const reset = useWellbeingStore((state) => state.reset)
   const simulateActivityTick = useWellbeingStore((state) => state.simulateActivityTick)
+  const setWellbeingSubPage = useWellbeingStore((state) => state.setWellbeingSubPage)
+  const setSelectedDate = useWellbeingStore((state) => state.setSelectedDate)
+  const setDashboardViewMode = useWellbeingStore((state) => state.setDashboardViewMode)
+  const setGoalDetailDate = useWellbeingStore((state) => state.setGoalDetailDate)
+  const setScreenTimeGoal = useWellbeingStore((state) => state.setScreenTimeGoal)
+  const setTimerAppId = useWellbeingStore((state) => state.setTimerAppId)
+  const setTimerDuration = useWellbeingStore((state) => state.setTimerDuration)
 
   // Local inputs
   const defaultDomainInput = ''
@@ -248,6 +263,13 @@ export const useWellbeingLogic = () => {
     childDomainError,
     activeChildProfile,
     activeAppDetail,
+    wellbeingSubPage,
+    selectedDate,
+    dashboardViewMode,
+    goalDetailDate,
+    screenTimeGoal,
+    timerAppId,
+    timerDuration,
 
     // Calculated fields
     totalScreenTimeMinutes,
@@ -281,6 +303,7 @@ export const useWellbeingLogic = () => {
     removeChildWhitelist,
     removeChildBlacklist,
     setSelectedChildId,
+    addChildProfile,
     toggleBlockerOption,
     removeWhitelistDomain,
     removeBlacklistDomain,
@@ -288,6 +311,13 @@ export const useWellbeingLogic = () => {
     addToast,
     reset,
     simulateActivityTick,
+    setWellbeingSubPage,
+    setSelectedDate,
+    setDashboardViewMode,
+    setGoalDetailDate,
+    setScreenTimeGoal,
+    setTimerAppId,
+    setTimerDuration,
 
     // Custom handlers
     handleAddWhitelist,

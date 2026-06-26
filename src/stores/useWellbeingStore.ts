@@ -91,6 +91,13 @@ interface WellbeingState {
   blockerHistory: BlockerHistoryItem[]
   whitelist: string[]
   blacklist: string[]
+  wellbeingSubPage: 'home' | 'dashboard' | 'goal' | 'report' | 'set-timer'
+  selectedDate: string
+  dashboardViewMode: 'apps' | 'categories'
+  goalDetailDate: string | null
+  screenTimeGoal: number // in minutes
+  timerAppId: string | null
+  timerDuration: number // in minutes
 }
 
 interface WellbeingActions {
@@ -109,6 +116,7 @@ interface WellbeingActions {
   addChildBlacklist: (childId: string, domain: string) => void
   removeChildBlacklist: (childId: string, domain: string) => void
   setSelectedChildId: (childId: string) => void
+  addChildProfile: (name: string, age: number, avatarColor: string) => void
   toggleBlockerOption: (key: keyof BlockerToggles) => void
   addWhitelistDomain: (domain: string) => void
   removeWhitelistDomain: (domain: string) => void
@@ -118,6 +126,13 @@ interface WellbeingActions {
   removeToast: (id: string) => void
   simulateActivityTick: () => void
   reset: () => void
+  setWellbeingSubPage: (subPage: 'home' | 'dashboard' | 'goal' | 'report' | 'set-timer') => void
+  setSelectedDate: (date: string) => void
+  setDashboardViewMode: (mode: 'apps' | 'categories') => void
+  setGoalDetailDate: (date: string | null) => void
+  setScreenTimeGoal: (minutes: number) => void
+  setTimerAppId: (appId: string | null) => void
+  setTimerDuration: (minutes: number) => void
 }
 
 const initialAppStats: AppStat[] = [
@@ -229,7 +244,14 @@ const initialState: WellbeingState = {
   },
   blockerHistory: initialBlockerHistory,
   whitelist: ['youtube.com', 'notion.so', 'google.com'],
-  blacklist: ['facebook.com', 'pinterest.com']
+  blacklist: ['facebook.com', 'pinterest.com'],
+  wellbeingSubPage: 'home',
+  selectedDate: '26',
+  dashboardViewMode: 'apps',
+  goalDetailDate: null,
+  screenTimeGoal: 360,
+  timerAppId: null,
+  timerDuration: 60
 }
 
 export const useWellbeingStore = create<WellbeingState & WellbeingActions>((set) => ({
@@ -399,6 +421,34 @@ export const useWellbeingStore = create<WellbeingState & WellbeingActions>((set)
 
   setSelectedChildId: (childId) => set({ selectedChildId: childId }),
 
+  addChildProfile: (name, age, avatarColor) =>
+    set((state) => {
+      const newId = name.toLowerCase().trim().replace(/\s+/g, '_')
+      const newChild: ChildProfile = {
+        id: newId,
+        name,
+        age,
+        avatarColor,
+        weekdayLimitMinutes: 120,
+        weekendLimitMinutes: 180,
+        timeSpentToday: 0,
+        whitelist: ['wikipedia.org', 'khanacademy.org'],
+        blacklist: ['tiktok.com']
+      }
+      return {
+        childProfiles: [...state.childProfiles, newChild],
+        selectedChildId: newId,
+        childAppLimits: {
+          ...state.childAppLimits,
+          [newId]: { minecraft: 60, yt: 45 }
+        },
+        childManualLocks: {
+          ...state.childManualLocks,
+          [newId]: []
+        }
+      }
+    }),
+
   toggleBlockerOption: (key) =>
     set((state) => ({
       blockerToggles: {
@@ -516,5 +566,13 @@ export const useWellbeingStore = create<WellbeingState & WellbeingActions>((set)
       }
     }),
 
-  reset: () => set(initialState)
+  reset: () => set(initialState),
+
+  setWellbeingSubPage: (subPage) => set({ wellbeingSubPage: subPage }),
+  setSelectedDate: (date) => set({ selectedDate: date }),
+  setDashboardViewMode: (mode) => set({ dashboardViewMode: mode }),
+  setGoalDetailDate: (date) => set({ goalDetailDate: date }),
+  setScreenTimeGoal: (minutes) => set({ screenTimeGoal: minutes }),
+  setTimerAppId: (appId) => set({ timerAppId: appId }),
+  setTimerDuration: (minutes) => set({ timerDuration: minutes })
 }))

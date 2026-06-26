@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react'
+import { useState, useMemo, useCallback } from 'react'
 
 import { motion } from 'framer-motion'
 
@@ -28,48 +28,40 @@ export const AppDetailReport = () => {
 
   const appToShow = activeAppDetail || savedAppDetail
 
-  if (!appToShow) return null
+  const [prevAppId, setPrevAppId] = useState<string | null>(null)
 
-  // Local state for limit editing
-  const [editingLimit, setEditingLimit] = useState(appToShow.limitMinutes || 60)
-  const isLocked = appToShow.isLockedManually || (appToShow.limitMinutes && appToShow.timeSpent >= appToShow.limitMinutes)
+  const defaultLimit = 60
+  const [editingLimit, setEditingLimit] = useState(defaultLimit)
 
-  const handleSave = () => {
-    updateAppLimit(appToShow.id, editingLimit)
-    addToast(`Updated daily limit for ${appToShow.name} to ${editingLimit}m`, 'success')
-  }
-
-  const handleToggleManualLock = () => {
-    togglePersonalManualLock(appToShow.id)
-    const nextState = !appToShow.isLockedManually
-    addToast(
-      nextState ? `Manually locked ${appToShow.name}` : `Unlocked ${appToShow.name}`,
-      nextState ? 'warning' : 'success'
-    )
+  if (appToShow && appToShow.id !== prevAppId) {
+    setPrevAppId(appToShow.id)
+    setEditingLimit(appToShow.limitMinutes || 60)
   }
 
   // Generate hourly points dynamically scaled based on timeSpent
-  const totalMins = appToShow.timeSpent || 60
-  const hourlyMins = [
+  const totalMins = appToShow?.timeSpent || 60
+
+  const hourlyMins = useMemo(() => [
     Math.round(totalMins * 0.12),
     Math.round(totalMins * 0.28),
     Math.round(totalMins * 0.08),
     Math.round(totalMins * 0.38),
     Math.round(totalMins * 0.14)
-  ]
+  ], [totalMins])
 
-  const mockHourlyPoints = [
+  const mockHourlyPoints = useMemo(() => [
     { hour: '9 AM', mins: hourlyMins[0] },
     { hour: '12 PM', mins: hourlyMins[1] },
     { hour: '3 PM', mins: hourlyMins[2] },
     { hour: '6 PM', mins: hourlyMins[3] },
     { hour: '9 PM', mins: hourlyMins[4] }
-  ]
+  ], [hourlyMins])
 
   // Spline points for SVG path
   const chartWidth = 280
   const chartHeight = 90
-  const maxVal = Math.max(...hourlyMins, 15)
+
+  const maxVal = useMemo(() => Math.max(...hourlyMins, 15), [hourlyMins])
 
   const splinePoints = useMemo(() => {
     return mockHourlyPoints.map((data, index) => {
@@ -77,7 +69,7 @@ export const AppDetailReport = () => {
       const y = chartHeight - 16 - (data.mins / maxVal) * (chartHeight - 32)
       return { x, y }
     })
-  }, [hourlyMins, maxVal])
+  }, [mockHourlyPoints, maxVal])
 
   const splinePath = useMemo(() => {
     if (splinePoints.length === 0) return ''
@@ -99,9 +91,29 @@ export const AppDetailReport = () => {
     return `${splinePath} L ${splinePoints[splinePoints.length - 1].x} ${chartHeight - 4} L ${splinePoints[0].x} ${chartHeight - 4} Z`
   }, [splinePath, splinePoints])
 
-  const handleBackClick = () => {
+  const handleBackClick = useCallback(() => {
     setActiveAppDetailId(null)
-  }
+  }, [setActiveAppDetailId])
+
+  const handleSave = useCallback(() => {
+    if (!appToShow) return
+    updateAppLimit(appToShow.id, editingLimit)
+    addToast(`Updated daily limit for ${appToShow.name} to ${editingLimit}m`, 'success')
+  }, [appToShow, editingLimit, updateAppLimit, addToast])
+
+  const handleToggleManualLock = useCallback(() => {
+    if (!appToShow) return
+    togglePersonalManualLock(appToShow.id)
+    const nextState = !appToShow.isLockedManually
+    addToast(
+      nextState ? `Manually locked ${appToShow.name}` : `Unlocked ${appToShow.name}`,
+      nextState ? 'warning' : 'success'
+    )
+  }, [appToShow, togglePersonalManualLock, addToast])
+
+  if (!appToShow) return null
+
+  const isLocked = appToShow.isLockedManually || (appToShow.limitMinutes && appToShow.timeSpent >= appToShow.limitMinutes)
 
   const handleLimitChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setEditingLimit(parseInt(e.target.value))

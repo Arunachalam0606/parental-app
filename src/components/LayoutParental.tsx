@@ -40,11 +40,40 @@ export const LayoutParental = () => {
     setChildAppLimit,
     childManualLocks,
     toggleChildManualLock,
-    getChildAppTimeSpent
+    getChildAppTimeSpent,
+    addChildProfile,
+    addToast
   } = useWellbeingLogic()
 
   // Tabs for whitelist vs blacklist
   const [activeListTab, setActiveListTab] = useState<'whitelist' | 'blacklist'>('blacklist')
+
+  // Modal states for adding child profile
+  const [showAddModal, setShowAddModal] = useState<boolean>(false)
+  const [newChildName, setNewChildName] = useState<string>('')
+  const [newChildAge, setNewChildAge] = useState<number>(10)
+  const [newChildColor, setNewChildColor] = useState<string>('#818CF8')
+
+  const handleOpenAddChild = () => {
+    setNewChildName('')
+    setNewChildAge(10)
+    setNewChildColor('#818CF8')
+    setShowAddModal(true)
+  }
+
+  const handleCloseAddChild = () => {
+    setShowAddModal(false)
+  }
+
+  const handleCreateChild = () => {
+    if (!newChildName.trim()) {
+      addToast('Please enter a name', 'warning')
+      return
+    }
+    addChildProfile(newChildName, newChildAge, newChildColor)
+    addToast(`Added profile for ${newChildName}`, 'success')
+    setShowAddModal(false)
+  }
 
   // Edit app-limit drawer state
   const [editingAppId, setEditingAppId] = useState<string | null>(null)
@@ -96,7 +125,7 @@ export const LayoutParental = () => {
         <h1 className="font-heading text-2xl font-bold tracking-tight mt-0.5 text-foreground/90">Family Hub</h1>
       </div>
 
-      <div className="flex rounded-2xl bg-secondary/55 p-1 backdrop-blur-md border border-border/10">
+      <div className="flex rounded-2xl bg-secondary/55 p-1 backdrop-blur-md border border-border/10 items-center">
         {childProfiles.map((child) => {
           const isSelected = child.id === selectedChildId
 
@@ -123,6 +152,14 @@ export const LayoutParental = () => {
             </button>
           )
         })}
+
+        <button 
+          onClick={handleOpenAddChild}
+          className="p-2.5 rounded-xl text-muted-foreground hover:text-primary hover:bg-primary/10 transition-all flex items-center justify-center cursor-pointer shrink-0 ml-1.5 mr-1"
+          title="Add new child profile"
+        >
+          <PlusIcon size={16} weight="bold" />
+        </button>
       </div>
 
       <AnimatePresence mode="popLayout">
@@ -567,6 +604,89 @@ export const LayoutParental = () => {
           ))}
         </div>
       </div>
+
+      {/* Modal / Dialog for Add Child */}
+      <AnimatePresence>
+        {showAddModal && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-50 bg-slate-950/70 backdrop-blur-sm flex items-center justify-center p-4"
+          >
+            <motion.div
+              initial={{ scale: 0.95, y: 15 }}
+              animate={{ scale: 1, y: 0 }}
+              exit={{ scale: 0.95, y: 15 }}
+              className="w-full max-w-sm rounded-3xl bg-card border border-border p-6 flex flex-col gap-4 shadow-xl text-foreground select-none"
+            >
+              <h3 className="font-heading text-base font-bold tracking-tight text-foreground/90">Add child profile</h3>
+
+              <div className="flex flex-col gap-1.5">
+                <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider pl-1">Child's Name</span>
+                <input
+                  type="text"
+                  placeholder="e.g. Liam"
+                  value={newChildName}
+                  onChange={(e) => setNewChildName(e.target.value)}
+                  className="h-10 px-3.5 rounded-xl border border-border bg-secondary/40 text-xs font-bold text-foreground focus:outline-none focus:border-primary/50"
+                  maxLength={15}
+                />
+              </div>
+
+              <div className="flex flex-col gap-1.5">
+                <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider pl-1">Age</span>
+                <div className="flex gap-2 items-center">
+                  {[6, 8, 10, 12, 14, 16].map((ageVal) => (
+                    <button
+                      key={ageVal}
+                      onClick={() => setNewChildAge(ageVal)}
+                      className={`flex-1 h-8 rounded-lg text-[10px] font-black border transition-all cursor-pointer ${
+                        newChildAge === ageVal 
+                          ? 'bg-primary border-primary/20 text-primary-foreground shadow-sm' 
+                          : 'bg-secondary/60 border-border/50 text-muted-foreground hover:text-foreground'
+                      }`}
+                    >
+                      {ageVal} y/o
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              <div className="flex flex-col gap-1.5">
+                <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider pl-1">Avatar Color</span>
+                <div className="flex gap-3 justify-center py-1">
+                  {['#818CF8', '#F472B6', '#34D399', '#FB923C', '#C084FC'].map((color) => (
+                    <button
+                      key={color}
+                      onClick={() => setNewChildColor(color)}
+                      className={`h-7 w-7 rounded-full transition-all border-2 cursor-pointer ${
+                        newChildColor === color ? 'border-primary scale-110' : 'border-transparent'
+                      }`}
+                      style={{ backgroundColor: color }}
+                    />
+                  ))}
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-3 border-t border-border/40 pt-4 mt-2">
+                <button
+                  onClick={handleCloseAddChild}
+                  className="h-10 rounded-xl bg-secondary hover:bg-muted border border-border text-xs font-bold text-foreground/80 cursor-pointer"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={handleCreateChild}
+                  className="h-10 rounded-xl bg-primary text-primary-foreground text-xs font-black shadow-md hover:opacity-95 cursor-pointer"
+                >
+                  Create Profile
+                </button>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </section>
   )
 }

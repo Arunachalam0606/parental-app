@@ -37,7 +37,8 @@ export const App = () => {
     setSelectedChildId,
     setActiveProfileMode,
     setActiveTab,
-    addToast
+    addToast,
+    wellbeingSubPage
   } = useWellbeingLogic()
 
   // Auto-remove toasts after 3.5s
@@ -251,8 +252,8 @@ export const App = () => {
                 </AnimatePresence>
               </div>
 
-              {/* Interactive bottom bar (hidden in Child Mode / App Details view) */}
-              {activeProfileMode !== 'child' && activeAppDetailId === null && (
+              {/* Interactive bottom bar (hidden in Child Mode / App Details / sub-pages) */}
+              {activeProfileMode !== 'child' && activeAppDetailId === null && (activeTab !== 'dashboard' || wellbeingSubPage === 'home') && (
                 <BottomNavBar />
               )}
 
