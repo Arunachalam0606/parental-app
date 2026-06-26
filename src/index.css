@@ -49,37 +49,37 @@
 }
 
 :root {
-    --background: oklch(0.988 0.004 220);
-    --foreground: oklch(0.22 0.012 220);
-    --card: oklch(1 0 0 / 70%);
-    --card-foreground: oklch(0.22 0.012 220);
-    --popover: oklch(1 0 0);
-    --popover-foreground: oklch(0.22 0.012 220);
-    --primary: oklch(0.56 0.12 250);
-    --primary-foreground: oklch(0.988 0.004 220);
-    --secondary: oklch(0.96 0.004 220);
-    --secondary-foreground: oklch(0.22 0.012 220);
-    --muted: oklch(0.96 0.004 220);
-    --muted-foreground: oklch(0.52 0.015 220);
-    --accent: oklch(0.96 0.004 220 / 50%);
-    --accent-foreground: oklch(0.22 0.012 220);
-    --destructive: oklch(0.62 0.12 25);
-    --border: oklch(0.93 0.005 220);
-    --input: oklch(0.96 0.004 220);
+    --background: oklch(0.978 0.005 85); /* Soft warm sand/ivory background */
+    --foreground: oklch(0.22 0.012 85);  /* Deep warm slate/charcoal text */
+    --card: oklch(0.99 0.003 85 / 80%);  /* Frosted warm cream card background */
+    --card-foreground: oklch(0.22 0.012 85);
+    --popover: oklch(0.99 0.003 85);
+    --popover-foreground: oklch(0.22 0.012 85);
+    --primary: oklch(0.56 0.12 250);     /* Soft slate blue/purple primary */
+    --primary-foreground: oklch(0.99 0.003 85);
+    --secondary: oklch(0.94 0.006 85);   /* Soft sand/beige secondary background */
+    --secondary-foreground: oklch(0.22 0.012 85);
+    --muted: oklch(0.94 0.006 85);
+    --muted-foreground: oklch(0.52 0.01 85);
+    --accent: oklch(0.94 0.006 85 / 50%);
+    --accent-foreground: oklch(0.22 0.012 85);
+    --destructive: oklch(0.60 0.12 25);  /* Soft warm crimson/rose */
+    --border: oklch(0.92 0.005 85);      /* Soft sand border lines */
+    --input: oklch(0.94 0.006 85);
     --ring: oklch(0.56 0.12 250 / 25%);
-    --chart-1: oklch(0.66 0.09 170); /* Soft Sage Green */
-    --chart-2: oklch(0.72 0.09 50);  /* Soft Gold */
-    --chart-3: oklch(0.68 0.09 240); /* Soft Sky Blue */
-    --chart-4: oklch(0.66 0.10 300); /* Soft Orchid */
-    --chart-5: oklch(0.64 0.10 25);  /* Soft Coral */
-    --radius: 1.25rem;
-    --sidebar: oklch(0.988 0.004 220);
-    --sidebar-foreground: oklch(0.22 0.012 220);
+    --chart-1: oklch(0.68 0.08 135);     /* Soft warm sage */
+    --chart-2: oklch(0.72 0.09 70);      /* Soft warm ochre */
+    --chart-3: oklch(0.68 0.09 230);     /* Soft slate blue */
+    --chart-4: oklch(0.68 0.10 320);     /* Soft warm mauve */
+    --chart-5: oklch(0.66 0.10 40);      /* Soft warm clay */
+    --radius: 0.95rem;                    /* Reduced from 1.25rem to fix over-rounding */
+    --sidebar: oklch(0.978 0.005 85);
+    --sidebar-foreground: oklch(0.22 0.012 85);
     --sidebar-primary: oklch(0.56 0.12 250);
-    --sidebar-primary-foreground: oklch(0.988 0.004 220);
-    --sidebar-accent: oklch(0.96 0.004 220);
-    --sidebar-accent-foreground: oklch(0.22 0.012 220);
-    --sidebar-border: oklch(0.93 0.005 220);
+    --sidebar-primary-foreground: oklch(0.99 0.003 85);
+    --sidebar-accent: oklch(0.94 0.006 85);
+    --sidebar-accent-foreground: oklch(0.22 0.012 85);
+    --sidebar-border: oklch(0.92 0.005 85);
     --sidebar-ring: oklch(0.56 0.12 250 / 25%);
 }
 
