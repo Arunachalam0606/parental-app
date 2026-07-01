@@ -11,7 +11,7 @@ interface MobileFrameProps {
 }
 
 export const MobileFrame = (props: MobileFrameProps) => {
-  const { children } = props
+  const { children, layoutMode } = props
 
   const defaultTime = "12:00"
   const [time, setTime] = useState(defaultTime)
@@ -59,7 +59,9 @@ export const MobileFrame = (props: MobileFrameProps) => {
         </div>
       </div>
 
-      <div className="h-full w-full scrollbar-none overflow-y-auto px-5 pt-12 pb-6">
+      <div
+        className={`h-full w-full scrollbar-none overflow-y-auto pt-12 pb-6 ${layoutMode === "A" ? "px-5" : ""}`}
+      >
         {children}
       </div>
 

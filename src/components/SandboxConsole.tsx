@@ -82,34 +82,32 @@ export const SandboxConsole = () => {
           Active App Layout
         </span>
 
-        <div className="grid grid-cols-2 gap-2 rounded-xl bg-secondary/55 p-1">
-          <button
-            onClick={() => {
-              setLayoutMode("A")
-              addToast("Switched to Layout A (Classic)", "info")
-            }}
-            className={`flex cursor-pointer items-center justify-center gap-1.5 rounded-lg py-2.5 text-xs font-bold transition-all ${
-              layoutMode === "A"
-                ? "bg-primary text-primary-foreground shadow-sm"
-                : "text-muted-foreground hover:text-foreground active:scale-95"
-            }`}
-          >
-            <span>Layout A</span>
-          </button>
-
-          <button
-            onClick={() => {
-              setLayoutMode("B")
-              addToast("Switched to Layout B (Redesigned)", "success")
-            }}
-            className={`flex cursor-pointer items-center justify-center gap-1.5 rounded-lg py-2.5 text-xs font-bold transition-all ${
-              layoutMode === "B"
-                ? "bg-primary text-primary-foreground shadow-sm"
-                : "text-muted-foreground hover:text-foreground active:scale-95"
-            }`}
-          >
-            <span>Layout B</span>
-          </button>
+        <div className="grid grid-cols-3 gap-2 rounded-xl bg-secondary/55 p-1">
+          {(["A", "B", "C"] as const).map((mode) => (
+            <button
+              key={mode}
+              onClick={() => {
+                setLayoutMode(mode)
+                addToast(
+                  `Switched to Layout ${mode} (${
+                    mode === "A"
+                      ? "Classic"
+                      : mode === "B"
+                        ? "Redesigned"
+                        : "Cosmic AI"
+                  })`,
+                  mode === "A" ? "info" : "success"
+                )
+              }}
+              className={`flex cursor-pointer items-center justify-center rounded-lg py-2.5 text-xs font-bold transition-all ${
+                layoutMode === mode
+                  ? "bg-primary text-primary-foreground shadow-sm"
+                  : "text-muted-foreground hover:text-foreground active:scale-95"
+              }`}
+            >
+              <span>Layout {mode}</span>
+            </button>
+          ))}
         </div>
       </div>
 

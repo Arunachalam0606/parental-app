@@ -98,7 +98,7 @@ interface WellbeingState {
   screenTimeGoal: number // in minutes
   timerAppId: string | null
   timerDuration: number // in minutes
-  layoutMode: "A" | "B"
+  layoutMode: "A" | "B" | "C"
   demoEmpty: boolean
 }
 
@@ -152,7 +152,7 @@ interface WellbeingActions {
   setScreenTimeGoal: (minutes: number) => void
   setTimerAppId: (appId: string | null) => void
   setTimerDuration: (minutes: number) => void
-  setLayoutMode: (mode: "A" | "B") => void
+  setLayoutMode: (mode: "A" | "B" | "C") => void
   setDemoEmpty: (val: boolean) => void
 }
 
